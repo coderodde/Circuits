@@ -1,11 +1,15 @@
 package net.coderodde.circuits;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeMap;
 import net.coderodde.circuits.components.AbstractCircuitComponent;
+import net.coderodde.circuits.components.AbstractDoubleInputPinCircuitComponent;
+import net.coderodde.circuits.components.AbstractSingleInputPinCircuitComponent;
 import net.coderodde.circuits.components.support.AndGate;
 import net.coderodde.circuits.components.support.InputGate;
 import net.coderodde.circuits.components.support.NotGate;
@@ -36,7 +40,7 @@ public final class Circuit {
     private final List<InputGate> inputGates;
     private final List<OutputGate> outputGates;
     
-    private int modificationCount = 0;
+    private boolean minimized = false;
     
     public Circuit(String name, int inputPins, int outputPins) {
         this.name       = checkName(name);
@@ -66,18 +70,21 @@ public final class Circuit {
     }
     
     public void addNotGate(String notGateName) {
+        checkEditable();
         checkNewGateName(notGateName);
         NotGate notGate = new NotGate();
         componentMap.put(notGateName, notGate);
     }
     
     public void addAndGate(String andGateName) {
+        checkEditable();
         checkNewGateName(andGateName);
         AndGate andGate = new AndGate();
         componentMap.put(andGateName, andGate);
     }
     
     public void addOrGate(String orGateName) {
+        checkEditable();
         checkNewGateName(orGateName);
         OrGate orGate = new OrGate();
         componentMap.put(orGateName, orGate);
@@ -100,6 +107,106 @@ public final class Circuit {
         }
     }
     
+    public void minimized() {
+        checkEditable();
+        minimized = true;
+        checkAllPinsAreConnected();
+        checkIsDagInForwardDirection();
+        checkIsDagInBackwardDirection();
+    }
+    
+    public TargetComponentSelector connect(String sourceComponentName) {
+        return new TargetComponentSelector(sourceComponentName);
+    }
+    
+    private final class TargetComponentSelector {
+        
+        private final AbstractCircuitComponent sourceComponent;
+        
+        TargetComponentSelector(String sourceComponentName) {
+            Objects.requireNonNull(sourceComponentName,
+                                   "The source component name is null.");
+            
+            AbstractCircuitComponent sourceComponent = 
+                    componentMap.get(sourceComponentName);
+            
+            if (sourceComponent == null) {
+                throwComponentNotPresent(sourceComponentName);
+            }
+            
+            this.sourceComponent = sourceComponent;
+        }
+        
+        public void toFirstPinOf(String targetComponentName) {
+            checkName(targetComponentName);
+            AbstractCircuitComponent targetComponent =
+                    componentMap.get(targetComponentName);
+            
+            if (targetComponent == null) {
+                throwComponentNotPresent(targetComponentName);
+            }
+            
+            checkIsDoubleInputGate(targetComponent);
+            ((AbstractDoubleInputPinCircuitComponent) targetComponent)
+                    .setInputComponent1(sourceComponent);
+        }
+        
+        public void toSecondPinOf(String targetComponentName) {
+            checkName(targetComponentName);
+            AbstractCircuitComponent targetComponent =
+                    componentMap.get(targetComponentName);
+            
+            if (targetComponent == null) {
+                throwComponentNotPresent(targetComponentName);
+            }
+            
+            checkIsDoubleInputGate(targetComponent);
+            ((AbstractDoubleInputPinCircuitComponent) targetComponent)
+                    .setInputComponent2(sourceComponent);
+        }
+        
+        public void to(String targetComponentName) {
+            checkName(targetComponentName);
+            AbstractCircuitComponent targetComponent = 
+                    componentMap.get(targetComponentName);
+            
+            if (targetComponent == null) {
+                throwComponentNotPresent(targetComponentName);
+            }
+            
+            checkIsSingleInputGate(targetComponent);
+            ((AbstractSingleInputPinCircuitComponent) targetComponent)
+                    .setInputComponent(sourceComponent);
+        }
+        
+        private void throwComponentNotPresent(String componentName) {
+            throw new IllegalStateException(
+                    "The component \"" + componentName + "\" is " +
+                    "not present in the circuit \"" + name + "\".");
+        }
+        
+        private void checkIsSingleInputGate(AbstractCircuitComponent gate) {
+            if (!(gate instanceof AbstractSingleInputPinCircuitComponent)) {
+                throw new IllegalArgumentException(
+                        "A single input pin component is expected here.");
+            }
+        }
+        
+        private void checkIsDoubleInputGate(AbstractCircuitComponent gate) {
+            if (!(gate instanceof AbstractDoubleInputPinCircuitComponent)) {
+                throw new IllegalArgumentException(
+                        "A double input pin component is expected here.");
+            }
+        }
+    }
+    
+    private void checkEditable() {
+        if (minimized) {
+            throw new IllegalStateException(
+                    "The circuit \"" + name + "\" is not editable.");
+        }
+    }
+    
     private void unsetAllInputPins() {
         for (InputGate inputGate : inputGates) {
             inputGate.setBit(false);
@@ -115,13 +222,13 @@ public final class Circuit {
         
         if (name.startsWith(INPUT_PIN_NAME_PREFIX)) {
             throw new IllegalArgumentException(
-                    "The circuit name (" + name + ")has illegal prefix \"" +
+                    "The circuit name (" + name + ") has illegal prefix \"" +
                     INPUT_PIN_NAME_PREFIX + "\".");
         }
         
         if (name.startsWith(OUTPUT_PIN_NAME_PREFIX)) {
             throw new IllegalArgumentException(
-                    "The circuit name (" + name + ")has illegal prefix \"" + 
+                    "The circuit name (" + name + ") has illegal prefix \"" + 
                     OUTPUT_PIN_NAME_PREFIX + "\".");
         }
         
@@ -250,7 +357,45 @@ public final class Circuit {
                 checkOrGateComplete((OrGate) e.getValue(), e.getKey());
             } else if (e.getValue() instanceof AndGate) {
                 checkAndGateComplete((AndGate) e.getValue(), e.getKey());
+            } else {
+                throw new IllegalStateException(
+                        "Unknown component type: " + e.getValue());
             }
         }
+    }
+    
+    private void checkIsDagInForwardDirection() {
+        Set<AbstractCircuitComponent> closed = new HashSet<>();
+        
+        for (AbstractCircuitComponent inputComponent : inputGates) {
+            if (hasCycle(inputComponent, closed)) {
+                throw new IllegalStateException("A forward cycle found.");
+            }
+        }
+    }
+    
+    private boolean hasCycle(AbstractCircuitComponent component, 
+                             Set<AbstractCircuitComponent> closed) {
+        if (closed.contains(component)) {
+            return true;
+        }
+//        
+//        if (component instanceof AbstractSingleInputPinCircuitComponent) {
+//            AbstractCircuitComponent outputComponent = 
+//                    ((AbstractCircuitComponent) component).getOutputComponent();
+//            
+//            if (hasCycle(outputComponent, closed)) {
+//                return true;
+//            }
+//        } else if (
+//                component instanceof AbstractDoubleInputPinCircuitComponent) {
+//            AbstractCircuitComponent outputComponent
+//        }
+        
+        return false;
+    }
+    
+    private void checkIsDagInBackwardDirection() {
+        
     }
 }
