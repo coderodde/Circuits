@@ -1,11 +1,7 @@
 package net.coderodde.circuits;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
+import static org.junit.Assert.assertEquals;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 public class CircuitTest {
     
@@ -17,5 +13,37 @@ public class CircuitTest {
         circuit.connect("and1").to("outputPin1");
         circuit.connect("and2").to("and1");
         circuit.minimize();
+    }
+    
+    @Test
+    public void test1() {
+        Circuit circuit = new Circuit("myCircuit", 4, 1);
+        
+        circuit.addAndGate("and1");
+        circuit.addAndGate("and2");
+        circuit.addOrGate("or");
+        
+        circuit.connect("inputPin0").toFirstPinOf("and1");
+        circuit.connect("inputPin1").toSecondPinOf("and1");
+        circuit.connect("inputPin2").toFirstPinOf("and2");
+        circuit.connect("inputPin3").toSecondPinOf("and2");
+        circuit.connect("and1").toFirstPinOf("or");
+        circuit.connect("and2").toSecondPinOf("or");
+        circuit.connect("or").to("outputPin0");
+        
+        for (boolean bit0 : new boolean[]{ false, true }) {
+            for (boolean bit1 : new boolean[]{ false, true }) {
+                for (boolean bit2 : new boolean[]{ false, true }) {
+                    for (boolean bit3 : new boolean[]{ false, true }) {
+                        circuit.setInputBits(bit0, bit1, bit2, bit3);
+                        boolean expected = (bit0 && bit1) || (bit2 && bit3);
+                        circuit.doCycle();
+                        boolean[] result = circuit.getOutputBits();
+                        assertEquals(1, result.length);
+                        assertEquals(expected, result[0]);
+                    }
+                }
+            }
+        }
     }
 }

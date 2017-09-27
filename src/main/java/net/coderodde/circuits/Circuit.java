@@ -36,8 +36,8 @@ public final class Circuit {
     private final Map<String, AbstractCircuitComponent> componentMap = 
             new TreeMap<>();
     
-    private final int inputPins;
-    private final int outputPins;
+    private final int numberOfInputPins;
+    private final int numberOfOutputPins;
     
     private final List<InputGate> inputGates;
     private final List<OutputGate> outputGates;
@@ -46,11 +46,11 @@ public final class Circuit {
     
     public Circuit(String name, int inputPins, int outputPins) {
         this.name       = checkName(name);
-        this.inputPins  = checkInputPinCount(inputPins);
-        this.outputPins = checkOutputPinCount(outputPins);
+        this.numberOfInputPins  = checkInputPinCount(inputPins);
+        this.numberOfOutputPins = checkOutputPinCount(outputPins);
         
-        this.inputGates  = new ArrayList<>(this.inputPins);
-        this.outputGates = new ArrayList<>(this.outputPins);
+        this.inputGates  = new ArrayList<>(this.numberOfInputPins);
+        this.outputGates = new ArrayList<>(this.numberOfOutputPins);
         
         for (int inputPin = 0; inputPin < inputPins; ++inputPin) {
             String inputComponentName = INPUT_PIN_NAME_PREFIX + inputPin;
@@ -93,20 +93,36 @@ public final class Circuit {
     }
     
     public int getNumberOfInputPins() {
-        return inputPins;
+        return numberOfInputPins;
     }
     
     public int getNumberOfOutputPins() {
-        return outputPins;
+        return numberOfOutputPins;
     }
     
-    public void setInputPins(boolean... bits) {
+    public void doCycle() {
+        for (OutputGate outputGate : outputGates) {
+            outputGate.doCycle();
+        }
+    }
+    
+    public void setInputBits(boolean... bits) {
         Objects.requireNonNull(bits, "The input bit array is null.");
         unsetAllInputPins();
         
         for (int i = 0; i < Math.min(bits.length, inputGates.size()); ++i) {
             inputGates.get(i).setBit(bits[i]);
         }
+    }
+    
+    public boolean[] getOutputBits() {
+        boolean[] bits = new boolean[numberOfOutputPins];
+        
+        for (int i = 0; i < bits.length; ++i) {
+            bits[i] = outputGates.get(i).doCycle();
+        }
+        
+        return bits;
     }
     
     public void minimize() {
@@ -440,7 +456,7 @@ public final class Circuit {
     }
     
     private static List<AbstractCircuitComponent> 
-        expand(AbstractCircuitComponent component) {
+        forwardExpand(AbstractCircuitComponent component) {
         if (component instanceof JointWire) {
             return new ArrayList<>(((JointWire) component).getOutputs());
         } 
@@ -454,6 +470,19 @@ public final class Circuit {
             throw new IllegalStateException("Unknown gate type.");
         }
     }
+        
+//    private static List<AbstractCircuitComponent>
+//        backwardExpand(AbstractCircuitComponent component) {
+//        if (component instanceof AbstractSingleInputPinCircuitComponent) {
+//            return Arrays.asList(
+//                    ((AbstractSingleInputPinCircuitComponent) component)
+//                            .getInputComponent());
+//        }       
+//        
+//        if (component instanceof AbstractDoubleInputPinCircuitComponent) {
+//            return Arrays.asList(a)
+//        }
+//    }
     
     private boolean hasCycle(AbstractCircuitComponent component, 
                              Set<AbstractCircuitComponent> closed) {
@@ -463,7 +492,7 @@ public final class Circuit {
         
         closed.add(component);
         
-        for (AbstractCircuitComponent child : expand(component)) {
+        for (AbstractCircuitComponent child : forwardExpand(component)) {
             if (hasCycle(child, closed)) {
                 return true;
             }
