@@ -1,5 +1,6 @@
 package net.coderodde.circuits;
 
+import java.util.Arrays;
 import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
@@ -53,6 +54,38 @@ public class CircuitTest {
                         assertEquals(expected, result[0]);
                     }
                 }
+            }
+        }
+    }
+    
+    @Test
+    public void testSubcircuit1() {
+        Circuit subcircuit = new Circuit("mySubcircuit", 2, 1);
+        
+        subcircuit.addAndGate("and");
+        subcircuit.addNotGate("not1");
+        subcircuit.addNotGate("not2");
+        subcircuit.connect("inputPin0").to("not1");
+        subcircuit.connect("inputPin1").to("not2");
+        subcircuit.connect("not1").toFirstPinOf("and");
+        subcircuit.connect("not2").toSecondPinOf("and");
+        subcircuit.connect("and").to("outputPin0");
+        
+        Circuit circuit = new Circuit("myCircuit", 2, 1);
+        circuit.addCircuit(subcircuit);
+        circuit.addNotGate("not");
+        
+        circuit.connect("inputPin0").to("mySubcircuit.inputPin0");
+        circuit.connect("inputPin1").to("mySubcircuit.inputPin1");
+        circuit.connect("mySubcircuit.outputPin0").to("not");
+        circuit.connect("not").to("outputPin0");    
+        
+        for (boolean bit0 : new boolean[] { false, true }) {
+            for (boolean bit1 : new boolean[] { false, true }) {
+                circuit.setInputBits(bit0, bit1);
+                circuit.doCycle();
+                boolean expected = !(!bit0 && !bit1);
+                assertEquals(expected, circuit.getOutputBits()[0]);
             }
         }
     }

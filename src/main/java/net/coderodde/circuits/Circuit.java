@@ -159,7 +159,7 @@ public final class Circuit extends AbstractCircuitComponent {
             AbstractCircuitComponent sourceComponent;
             
             if (sourceComponentName.contains(".")) {
-                String[] nameComponents = sourceComponentName.split(".");
+                String[] nameComponents = sourceComponentName.split("\\.");
                 
                 if (nameComponents.length != 2) {
                     throw new IllegalArgumentException(
@@ -197,7 +197,7 @@ public final class Circuit extends AbstractCircuitComponent {
             AbstractCircuitComponent targetComponent;
             
             if (targetComponentName.contains(".")) {
-                String[] nameComponents = targetComponentName.split(".");
+                String[] nameComponents = targetComponentName.split("\\.");
                 
                 if (nameComponents.length != 2) {
                     throw new IllegalArgumentException(
@@ -264,7 +264,7 @@ public final class Circuit extends AbstractCircuitComponent {
             AbstractCircuitComponent targetComponent;
             
             if (targetComponentName.contains(".")) {
-                String[] nameComponents = targetComponentName.split(".");
+                String[] nameComponents = targetComponentName.split("\\.");
                 
                 if (nameComponents.length != 2) {
                     throw new IllegalArgumentException(
@@ -331,7 +331,7 @@ public final class Circuit extends AbstractCircuitComponent {
             AbstractCircuitComponent targetComponent;
             
             if (targetComponentName.contains(".")) {
-                String[] nameComponents = targetComponentName.split(".");
+                String[] nameComponents = targetComponentName.split("\\.");
                 
                 if (nameComponents.length != 2) {
                     throw new IllegalArgumentException(
