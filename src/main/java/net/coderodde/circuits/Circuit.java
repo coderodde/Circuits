@@ -194,8 +194,32 @@ public final class Circuit extends AbstractCircuitComponent {
             Objects.requireNonNull(targetComponentName, 
                                    "The target component name is null.");
             
-            AbstractCircuitComponent targetComponent =
-                    componentMap.get(targetComponentName);
+            AbstractCircuitComponent targetComponent;
+            
+            if (targetComponentName.contains(".")) {
+                String[] nameComponents = targetComponentName.split(".");
+                
+                if (nameComponents.length != 2) {
+                    throw new IllegalArgumentException(
+                            "More than one dot operators: " + 
+                                    targetComponentName);
+                }
+                
+                Circuit subcircuit = 
+                        (Circuit) componentMap.get(nameComponents[0]);
+                
+                if (subcircuit == null) {
+                    throw new IllegalArgumentException(
+                            "Subcircuit \"" + nameComponents[0] + "\" is " +
+                            "not present in this circuit (" + getCircuitName() +
+                            ").");
+                }
+                
+                targetComponent = 
+                        subcircuit.componentMap.get(nameComponents[1]);
+            } else {
+                targetComponent = componentMap.get(targetComponentName);
+            }
             
             if (targetComponent == null) {
                 throwComponentNotPresent(targetComponentName);
@@ -237,8 +261,32 @@ public final class Circuit extends AbstractCircuitComponent {
             Objects.requireNonNull(targetComponentName,
                                    "The target component name is null.");
             
-            AbstractCircuitComponent targetComponent =
-                    componentMap.get(targetComponentName);
+            AbstractCircuitComponent targetComponent;
+            
+            if (targetComponentName.contains(".")) {
+                String[] nameComponents = targetComponentName.split(".");
+                
+                if (nameComponents.length != 2) {
+                    throw new IllegalArgumentException(
+                            "More than one dot operators: " +
+                                    targetComponentName);
+                }
+                
+                Circuit subcircuit = 
+                        (Circuit) componentMap.get(nameComponents[0]);
+                
+                if (subcircuit == null) {
+                    throw new IllegalArgumentException(
+                            "Subcircuit \"" + nameComponents[0] + "\" is " +
+                            "not present in this circuit (" + getCircuitName() +
+                            ").");
+                }
+                
+                targetComponent = 
+                        subcircuit.componentMap.get(nameComponents[1]);
+            } else {
+                targetComponent = componentMap.get(targetComponentName);
+            }
             
             if (targetComponent == null) {
                 throwComponentNotPresent(targetComponentName);
@@ -280,8 +328,32 @@ public final class Circuit extends AbstractCircuitComponent {
             Objects.requireNonNull(targetComponentName,
                                    "The target component name is null.");
             
-            AbstractCircuitComponent targetComponent = 
-                    componentMap.get(targetComponentName);
+            AbstractCircuitComponent targetComponent;
+            
+            if (targetComponentName.contains(".")) {
+                String[] nameComponents = targetComponentName.split(".");
+                
+                if (nameComponents.length != 2) {
+                    throw new IllegalArgumentException(
+                            "More than one dot operators: " + 
+                                    targetComponentName);
+                }
+                
+                Circuit subcircuit = 
+                        (Circuit) componentMap.get(nameComponents[0]);
+                
+                if (subcircuit == null) {
+                    throw new IllegalArgumentException(
+                            "Subcircuit \"" + nameComponents[0] + "\" is " +
+                            "not present in this circuit (" + getCircuitName() + 
+                            ").");
+                }
+                
+                targetComponent = 
+                        subcircuit.componentMap.get(nameComponents[1]);
+            } else {
+                targetComponent = componentMap.get(targetComponentName);
+            }
             
             if (targetComponent == null) {
                 throwComponentNotPresent(targetComponentName);
