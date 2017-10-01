@@ -5,13 +5,23 @@ import org.junit.Test;
 
 public class CircuitTest {
     
-    @Test(expected = IllegalStateException.class)
-    public void testFindsForwardCycle() {
+    @Test(expected = CycleException.class)
+    public void testFindsCycle() {
         Circuit circuit = new Circuit("myCircuit", 1, 1);
         circuit.addAndGate("and1");
-        circuit.connect("inputPin1").toFirstPinOf("and1");
-        circuit.connect("and1").to("outputPin1");
-        circuit.connect("and2").to("and1");
+        circuit.connect("inputPin0").toFirstPinOf("and1");
+        circuit.connect("and1").to("outputPin0");
+        circuit.connect("and1").toSecondPinOf("and1");
+        circuit.minimize();
+    }
+    
+    @Test(expected = InputPinOccupiedException.class)
+    public void testCannotConnectToOccupiedInput() {
+        Circuit circuit = new Circuit("myCircuit", 1, 1);
+        circuit.addNotGate("not");
+        circuit.connect("inputPin0").to("outputPin0");
+        circuit.connect("inputPin0").to("not");
+        circuit.connect("not").to("outputPin0");
         circuit.minimize();
     }
     

@@ -2,6 +2,7 @@ package net.coderodde.circuits;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +14,7 @@ import net.coderodde.circuits.components.AbstractDoubleInputPinCircuitComponent;
 import net.coderodde.circuits.components.AbstractSingleInputPinCircuitComponent;
 import net.coderodde.circuits.components.support.AndGate;
 import net.coderodde.circuits.components.support.InputGate;
-import net.coderodde.circuits.components.support.JointWire;
+import net.coderodde.circuits.components.support.BranchWire;
 import net.coderodde.circuits.components.support.NotGate;
 import net.coderodde.circuits.components.support.OrGate;
 import net.coderodde.circuits.components.support.OutputGate;
@@ -25,7 +26,7 @@ import net.coderodde.circuits.components.support.OutputGate;
  * @author Rodion "rodde" Efremov
  * @version 1.6 (Sep 20, 2017)
  */
-public final class Circuit {
+public final class Circuit extends AbstractCircuitComponent {
 
     private static final int MINIMUM_INPUT_PINS = 1;
     private static final int MINIMUM_OUTPUT_PINS = 1;
@@ -92,6 +93,12 @@ public final class Circuit {
         componentMap.put(orGateName, orGate);
     }
     
+    public void addCircuit(Circuit circuit) {
+        checkEditable();
+        checkNewGateName(circuit.getCircuitName());
+        componentMap.put(circuit.getCircuitName(), circuit);
+    }
+    
     public int getNumberOfInputPins() {
         return numberOfInputPins;
     }
@@ -100,10 +107,13 @@ public final class Circuit {
         return numberOfOutputPins;
     }
     
-    public void doCycle() {
+    @Override
+    public boolean doCycle() {
         for (OutputGate outputGate : outputGates) {
             outputGate.doCycle();
         }
+        
+        return false;
     }
     
     public void setInputBits(boolean... bits) {
@@ -134,6 +144,7 @@ public final class Circuit {
     }
     
     public TargetComponentSelector connect(String sourceComponentName) {
+        checkEditable();
         return new TargetComponentSelector(sourceComponentName);
     }
     
@@ -145,8 +156,32 @@ public final class Circuit {
             Objects.requireNonNull(sourceComponentName,
                                    "The source component name is null.");
             
-            AbstractCircuitComponent sourceComponent = 
-                    componentMap.get(sourceComponentName);
+            AbstractCircuitComponent sourceComponent;
+            
+            if (sourceComponentName.contains(".")) {
+                String[] nameComponents = sourceComponentName.split(".");
+                
+                if (nameComponents.length != 2) {
+                    throw new IllegalArgumentException(
+                            "More than one dot operators: " + 
+                                    sourceComponentName);
+                }
+                
+                Circuit subcircuit = 
+                        (Circuit) componentMap.get(nameComponents[0]);
+                
+                if (subcircuit == null) {
+                    throw new IllegalArgumentException(
+                            "Subcircuit \"" + nameComponents[0] + "\" is " +
+                            "not present in this circuit (" + getCircuitName() +
+                            ").");
+                }
+                
+                sourceComponent = 
+                        subcircuit.componentMap.get(nameComponents[1]);
+            } else {
+                sourceComponent = componentMap.get(sourceComponentName);
+            }
             
             if (sourceComponent == null) {
                 throwComponentNotPresent(sourceComponentName);
@@ -168,21 +203,29 @@ public final class Circuit {
             
             checkIsDoubleInputGate(targetComponent);
             
+            if (((AbstractDoubleInputPinCircuitComponent) targetComponent)
+                    .getInputComponent1() != null) {
+                throw new InputPinOccupiedException(
+                        "The 1st input pin of \"" + targetComponentName + "\"" + 
+                        " is occupied.");
+            }
+            
             if (sourceComponent.getOutputComponent() == null) {
                 ((AbstractDoubleInputPinCircuitComponent) targetComponent)
                         .setInputComponent1(sourceComponent);
                 
                 sourceComponent.setOutputComponent(targetComponent);
             } else if (
-                   sourceComponent.getOutputComponent() instanceof JointWire) {
+                   sourceComponent.getOutputComponent() instanceof BranchWire) {
                 ((AbstractDoubleInputPinCircuitComponent) targetComponent)
                         .setInputComponent1(
                                 sourceComponent.getOutputComponent());
-                ((JointWire) sourceComponent.getOutputComponent())
+                ((BranchWire) sourceComponent.getOutputComponent())
                         .connectTo(targetComponent);
             } else {
                 // Change an existing wire with JointWire.
-                JointWire jointWire = new JointWire();
+                BranchWire jointWire = new BranchWire();
+                jointWire.connectTo(sourceComponent.getOutputComponent());
                 sourceComponent.setOutputComponent(jointWire);
                 ((AbstractDoubleInputPinCircuitComponent) targetComponent)
                         .setInputComponent1(jointWire);
@@ -203,21 +246,29 @@ public final class Circuit {
             
             checkIsDoubleInputGate(targetComponent);
             
+            if (((AbstractDoubleInputPinCircuitComponent) targetComponent)
+                    .getInputComponent2() != null) {
+                throw new InputPinOccupiedException(
+                        "The 2nd input pin of \"" + targetComponentName + "\"" + 
+                        " is occupied.");
+            }
+            
             if (sourceComponent.getOutputComponent() == null) {
                 ((AbstractDoubleInputPinCircuitComponent) targetComponent)
                         .setInputComponent2(sourceComponent);
                 
                 sourceComponent.setOutputComponent(targetComponent);
             } else if (
-                   sourceComponent.getOutputComponent() instanceof JointWire) {
+                   sourceComponent.getOutputComponent() instanceof BranchWire) {
                 ((AbstractDoubleInputPinCircuitComponent) targetComponent)
                         .setInputComponent2(
                                 sourceComponent.getOutputComponent());
-                ((JointWire) sourceComponent.getOutputComponent())
+                ((BranchWire) sourceComponent.getOutputComponent())
                         .connectTo(targetComponent);
             } else {
                 // Change an existing wire with JointWire.
-                JointWire jointWire = new JointWire();
+                BranchWire jointWire = new BranchWire();
+                jointWire.connectTo(sourceComponent.getOutputComponent());
                 sourceComponent.setOutputComponent(jointWire);
                 ((AbstractDoubleInputPinCircuitComponent) targetComponent)
                         .setInputComponent2(jointWire);
@@ -238,21 +289,29 @@ public final class Circuit {
             
             checkIsSingleInputGate(targetComponent);
             
+            if (((AbstractSingleInputPinCircuitComponent) targetComponent)
+                    .getInputComponent() != null) {
+                throw new InputPinOccupiedException(
+                        "The only input pin of \"" + targetComponentName + 
+                        "\" is occupied.");
+            }
+            
             if (sourceComponent.getOutputComponent() == null) {
                 ((AbstractSingleInputPinCircuitComponent) targetComponent)
                         .setInputComponent(sourceComponent);
                 
                 sourceComponent.setOutputComponent(targetComponent);
             } else if (
-                   sourceComponent.getOutputComponent() instanceof JointWire) {
+                   sourceComponent.getOutputComponent() instanceof BranchWire) {
                 ((AbstractSingleInputPinCircuitComponent) targetComponent)
                         .setInputComponent(
                                 sourceComponent.getOutputComponent());
-                ((JointWire) sourceComponent.getOutputComponent())
+                ((BranchWire) sourceComponent.getOutputComponent())
                         .connectTo(targetComponent);
             } else {
                 // Change an existing wire with JointWire.
-                JointWire jointWire = new JointWire();
+                BranchWire jointWire = new BranchWire();
+                jointWire.connectTo(sourceComponent.getOutputComponent());
                 sourceComponent.setOutputComponent(jointWire);
                 ((AbstractSingleInputPinCircuitComponent) targetComponent)
                         .setInputComponent(jointWire);
@@ -342,6 +401,8 @@ public final class Circuit {
         if (gateName.isEmpty()) {
             throw new IllegalArgumentException("The new gate name is empty.");
         }
+        
+        
         
         if (gateName.startsWith(INPUT_PIN_NAME_PREFIX)) {
             throw new IllegalArgumentException(
@@ -449,42 +510,77 @@ public final class Circuit {
         Set<AbstractCircuitComponent> closed = new HashSet<>();
         
         for (AbstractCircuitComponent inputComponent : inputGates) {
-            if (hasCycle(inputComponent, closed)) {
-                throw new IllegalStateException("A forward cycle found.");
+            if (hasCycleForward(inputComponent, closed)) {
+                throw new CycleException();
+            }
+        }
+    }
+    
+    private void checkIsDagInBackwardDirection() {
+        Set<AbstractCircuitComponent> closed = new HashSet<>();
+        
+        for (AbstractCircuitComponent outputComponent : outputGates) {
+            if (hasCycleBackwards(outputComponent, closed)) {
+                throw new CycleException();
             }
         }
     }
     
     private static List<AbstractCircuitComponent> 
         forwardExpand(AbstractCircuitComponent component) {
-        if (component instanceof JointWire) {
-            return new ArrayList<>(((JointWire) component).getOutputs());
+        if (component instanceof BranchWire) {
+            return new ArrayList<>(((BranchWire) component).getOutputs());
         } 
         
         if (component instanceof AbstractSingleInputPinCircuitComponent) {
+            if (component.getOutputComponent() == null) {
+                return Collections.emptyList();
+            }
+            
             return Arrays.asList(component.getOutputComponent());
-        } else if (
-                component instanceof AbstractDoubleInputPinCircuitComponent) {
+        } 
+        
+        if (component instanceof AbstractDoubleInputPinCircuitComponent) {
+            if (component.getOutputComponent() == null) {
+                return Collections.emptyList();
+            }
+            
             return Arrays.asList(component.getOutputComponent());
-        } else {
-            throw new IllegalStateException("Unknown gate type.");
         }
+        
+        throw new IllegalStateException("Unknown gate type.");
     }
         
-//    private static List<AbstractCircuitComponent>
-//        backwardExpand(AbstractCircuitComponent component) {
-//        if (component instanceof AbstractSingleInputPinCircuitComponent) {
-//            return Arrays.asList(
-//                    ((AbstractSingleInputPinCircuitComponent) component)
-//                            .getInputComponent());
-//        }       
-//        
-//        if (component instanceof AbstractDoubleInputPinCircuitComponent) {
-//            return Arrays.asList(a)
-//        }
-//    }
+    private static List<AbstractCircuitComponent>
+        backwardExpand(AbstractCircuitComponent component) {
+        if (component instanceof AbstractSingleInputPinCircuitComponent) {
+            if (((AbstractSingleInputPinCircuitComponent) component)
+                    .getInputComponent() == null) {
+                return Collections.emptyList();
+            }
+            
+            return Arrays.asList(
+                    ((AbstractSingleInputPinCircuitComponent) component)
+                            .getInputComponent());
+        }       
+        
+        if (component instanceof AbstractDoubleInputPinCircuitComponent) {
+            AbstractDoubleInputPinCircuitComponent c = 
+                    (AbstractDoubleInputPinCircuitComponent) component;
+            
+            if (c.getInputComponent1() == null 
+                    || c.getInputComponent2() == null) {
+                return Collections.emptyList();
+            }
+            
+            return Arrays.asList(c.getInputComponent1(),
+                                 c.getInputComponent2());
+        }
+        
+        throw new IllegalStateException("Unknown gate type.");
+    }
     
-    private boolean hasCycle(AbstractCircuitComponent component, 
+    private boolean hasCycleForward(AbstractCircuitComponent component, 
                              Set<AbstractCircuitComponent> closed) {
         if (closed.contains(component)) {
             return true;
@@ -493,7 +589,7 @@ public final class Circuit {
         closed.add(component);
         
         for (AbstractCircuitComponent child : forwardExpand(component)) {
-            if (hasCycle(child, closed)) {
+            if (hasCycleForward(child, closed)) {
                 return true;
             }
         }
@@ -501,7 +597,21 @@ public final class Circuit {
         return false;
     }
     
-    private void checkIsDagInBackwardDirection() {
+    private boolean hasCycleBackwards(AbstractCircuitComponent component,
+                                     Set<AbstractCircuitComponent> closed) {
+        if (closed.contains(component)) {
+            return true;
+        }
         
+        closed.add(component);
+        
+        for (AbstractCircuitComponent parent : backwardExpand(component)) {
+            if (hasCycleBackwards(parent, closed)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
+    
 }

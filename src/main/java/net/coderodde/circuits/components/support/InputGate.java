@@ -26,6 +26,10 @@ public final class InputGate extends AbstractSingleInputPinCircuitComponent {
     
     @Override
     public boolean doCycle() {
+        if (getInputComponent() != null) {
+            return getInputComponent().doCycle();
+        }
+        
         return bit;
     }
 }

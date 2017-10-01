@@ -6,7 +6,7 @@ import java.util.Set;
 import net.coderodde.circuits.components.AbstractCircuitComponent;
 import net.coderodde.circuits.components.AbstractSingleInputPinCircuitComponent;
 
-public final class JointWire extends AbstractSingleInputPinCircuitComponent {
+public final class BranchWire extends AbstractSingleInputPinCircuitComponent {
 
     private final Set<AbstractCircuitComponent> outputs = new HashSet<>();
     
