@@ -6,6 +6,10 @@ extends AbstractCircuitComponent {
     protected AbstractCircuitComponent input1;
     protected AbstractCircuitComponent input2;
     
+    public AbstractDoubleInputPinCircuitComponent(String name) {
+        super(name);
+    }
+    
     public AbstractCircuitComponent getInputComponent1() {
         return input1;
     }

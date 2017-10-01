@@ -10,6 +10,10 @@ public final class BranchWire extends AbstractSingleInputPinCircuitComponent {
 
     private final Set<AbstractCircuitComponent> outputs = new HashSet<>();
     
+    public BranchWire() {
+        super(null);
+    }
+    
     @Override
     public boolean doCycle() {
         return input.doCycle();

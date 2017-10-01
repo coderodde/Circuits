@@ -5,6 +5,10 @@ extends AbstractCircuitComponent{
 
     protected AbstractCircuitComponent input;
     
+    public AbstractSingleInputPinCircuitComponent(String name) {
+        super(name);
+    }
+    
     public AbstractCircuitComponent getInputComponent() {
         return input;
     }

@@ -33,7 +33,6 @@ public final class Circuit extends AbstractCircuitComponent {
     private static final String INPUT_PIN_NAME_PREFIX = "inputPin";
     private static final String OUTPUT_PIN_NAME_PREFIX = "outputPin";
     
-    private final String name;
     private final Map<String, AbstractCircuitComponent> componentMap = 
             new TreeMap<>();
     
@@ -46,7 +45,7 @@ public final class Circuit extends AbstractCircuitComponent {
     private boolean minimized = false;
     
     public Circuit(String name, int inputPins, int outputPins) {
-        this.name       = checkName(name);
+        super(checkName(name));
         this.numberOfInputPins  = checkInputPinCount(inputPins);
         this.numberOfOutputPins = checkOutputPinCount(outputPins);
         
@@ -55,48 +54,44 @@ public final class Circuit extends AbstractCircuitComponent {
         
         for (int inputPin = 0; inputPin < inputPins; ++inputPin) {
             String inputComponentName = INPUT_PIN_NAME_PREFIX + inputPin;
-            InputGate inputComponent = new InputGate();
+            InputGate inputComponent = new InputGate(inputComponentName);
             componentMap.put(inputComponentName, inputComponent);
             inputGates.add(inputComponent);
         }
         
         for (int outputPin = 0; outputPin < outputPins; ++outputPin) {
             String outputComponentName = OUTPUT_PIN_NAME_PREFIX + outputPin;
-            OutputGate outputComponent = new OutputGate();
+            OutputGate outputComponent = new OutputGate(outputComponentName);
             componentMap.put(outputComponentName, outputComponent);
             outputGates.add(outputComponent);
         }
     }
     
-    public String getCircuitName() {
-        return name;
-    }
-    
     public void addNotGate(String notGateName) {
         checkEditable();
         checkNewGateName(notGateName);
-        NotGate notGate = new NotGate();
+        NotGate notGate = new NotGate(notGateName);
         componentMap.put(notGateName, notGate);
     }
     
     public void addAndGate(String andGateName) {
         checkEditable();
         checkNewGateName(andGateName);
-        AndGate andGate = new AndGate();
+        AndGate andGate = new AndGate(andGateName);
         componentMap.put(andGateName, andGate);
     }
     
     public void addOrGate(String orGateName) {
         checkEditable();
         checkNewGateName(orGateName);
-        OrGate orGate = new OrGate();
+        OrGate orGate = new OrGate(orGateName);
         componentMap.put(orGateName, orGate);
     }
     
     public void addCircuit(Circuit circuit) {
         checkEditable();
-        checkNewGateName(circuit.getCircuitName());
-        componentMap.put(circuit.getCircuitName(), circuit);
+        checkNewGateName(circuit.getName());
+        componentMap.put(circuit.getName(), circuit);
     }
     
     public int getNumberOfInputPins() {
@@ -173,7 +168,7 @@ public final class Circuit extends AbstractCircuitComponent {
                 if (subcircuit == null) {
                     throw new IllegalArgumentException(
                             "Subcircuit \"" + nameComponents[0] + "\" is " +
-                            "not present in this circuit (" + getCircuitName() +
+                            "not present in this circuit (" + getName() +
                             ").");
                 }
                 
@@ -211,7 +206,7 @@ public final class Circuit extends AbstractCircuitComponent {
                 if (subcircuit == null) {
                     throw new IllegalArgumentException(
                             "Subcircuit \"" + nameComponents[0] + "\" is " +
-                            "not present in this circuit (" + getCircuitName() +
+                            "not present in this circuit (" + getName() +
                             ").");
                 }
                 
@@ -278,7 +273,7 @@ public final class Circuit extends AbstractCircuitComponent {
                 if (subcircuit == null) {
                     throw new IllegalArgumentException(
                             "Subcircuit \"" + nameComponents[0] + "\" is " +
-                            "not present in this circuit (" + getCircuitName() +
+                            "not present in this circuit (" + getName() +
                             ").");
                 }
                 
@@ -345,7 +340,7 @@ public final class Circuit extends AbstractCircuitComponent {
                 if (subcircuit == null) {
                     throw new IllegalArgumentException(
                             "Subcircuit \"" + nameComponents[0] + "\" is " +
-                            "not present in this circuit (" + getCircuitName() + 
+                            "not present in this circuit (" + getName() + 
                             ").");
                 }
                 
@@ -394,7 +389,7 @@ public final class Circuit extends AbstractCircuitComponent {
         private void throwComponentNotPresent(String componentName) {
             throw new IllegalStateException(
                     "The component \"" + componentName + "\" is " +
-                    "not present in the circuit \"" + name + "\".");
+                    "not present in the circuit \"" + getName() + "\".");
         }
         
         private void checkIsSingleInputGate(AbstractCircuitComponent gate) {
@@ -415,7 +410,7 @@ public final class Circuit extends AbstractCircuitComponent {
     private void checkEditable() {
         if (minimized) {
             throw new IllegalStateException(
-                    "The circuit \"" + name + "\" is not editable.");
+                    "The circuit \"" + getName() + "\" is not editable.");
         }
     }
     

@@ -11,6 +11,10 @@ import net.coderodde.circuits.components.AbstractSingleInputPinCircuitComponent;
  */
 public final class NotGate extends AbstractSingleInputPinCircuitComponent {
 
+    public NotGate(String name) {
+        super(name);
+    }
+    
     @Override
     public boolean doCycle() {
         return !input.doCycle();

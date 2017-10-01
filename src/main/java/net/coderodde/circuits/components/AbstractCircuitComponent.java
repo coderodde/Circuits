@@ -2,7 +2,12 @@ package net.coderodde.circuits.components;
 
 public abstract class AbstractCircuitComponent {
 
+    private final String name;
     protected AbstractCircuitComponent output;
+    
+    public AbstractCircuitComponent(String name) {
+        this.name = name;
+    }
     
     /**
      * This method simulates a cycle over this component.
@@ -10,6 +15,10 @@ public abstract class AbstractCircuitComponent {
      * @return the output from this component.
      */
     public abstract boolean doCycle();
+    
+    public String getName() {
+        return name;
+    }
     
     public AbstractCircuitComponent getOutputComponent() {
         return output;

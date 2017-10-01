@@ -11,6 +11,10 @@ import net.coderodde.circuits.components.AbstractDoubleInputPinCircuitComponent;
  */
 public final class OrGate extends AbstractDoubleInputPinCircuitComponent {
 
+    public OrGate(String name) {
+        super(name);
+    }
+    
     @Override
     public boolean doCycle() {
         return input1.doCycle() || input2.doCycle();

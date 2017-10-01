@@ -8,12 +8,15 @@ public final class InputGate extends AbstractSingleInputPinCircuitComponent {
     
     private boolean bit;
     
-    public InputGate(boolean bit) {
+    
+    
+    public InputGate(String name, boolean bit) {
+        super(name);
         setBit(bit);
     }
     
-    public InputGate() {
-        this(DEFAULT_BIT);
+    public InputGate(String name) {
+        this(name, DEFAULT_BIT);
     }
     
     public boolean getBit() {

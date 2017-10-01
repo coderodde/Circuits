@@ -1,6 +1,5 @@
 package net.coderodde.circuits;
 
-import java.util.Arrays;
 import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
