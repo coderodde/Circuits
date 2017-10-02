@@ -28,22 +28,64 @@ import net.coderodde.circuits.components.support.OutputGate;
  */
 public final class Circuit extends AbstractCircuitComponent {
 
+    /**
+     * The minimum allowed number of input pins per circuit.
+     */
     private static final int MINIMUM_INPUT_PINS = 1;
+    
+    /**
+     * The minimum allowed number of output pins per circuit.
+     */
     private static final int MINIMUM_OUTPUT_PINS = 1;
+    
+    /**
+     * The input pin name prefix.
+     */
     private static final String INPUT_PIN_NAME_PREFIX = "inputPin";
+    
+    /**
+     * The output pin name prefix.
+     */
     private static final String OUTPUT_PIN_NAME_PREFIX = "outputPin";
     
+    /**
+     * The map mapping the name of a component to the actual component.
+     */
     private final Map<String, AbstractCircuitComponent> componentMap = 
             new TreeMap<>();
     
+    /**
+     * The number of input pins in this circuit.
+     */
     private final int numberOfInputPins;
+    
+    /**
+     * The number of output pins in this circuit.
+     */
     private final int numberOfOutputPins;
     
+    /**
+     * The list of input pins.
+     */
     private final List<InputGate> inputGates;
+    
+    /**
+     * The list of output pins.
+     */
     private final List<OutputGate> outputGates;
     
+    /**
+     * Set to {@code true} if this circuit is minimized.
+     */
     private boolean minimized = false;
     
+    /**
+     * Creates a new circuit.
+     * 
+     * @param name       the name of this circuit.
+     * @param inputPins  the number of input pins.
+     * @param outputPins the number of output pins.
+     */
     public Circuit(String name, int inputPins, int outputPins) {
         super(checkName(name));
         this.numberOfInputPins  = checkInputPinCount(inputPins);
@@ -67,6 +109,11 @@ public final class Circuit extends AbstractCircuitComponent {
         }
     }
     
+    /**
+     * Adds a new <code>NOT</code>-gate to this circuit.
+     * 
+     * @param notGateName the name of the gate.
+     */
     public void addNotGate(String notGateName) {
         checkEditable();
         checkNewGateName(notGateName);
@@ -74,6 +121,11 @@ public final class Circuit extends AbstractCircuitComponent {
         componentMap.put(notGateName, notGate);
     }
     
+    /**
+     * Adds a new <code>AND</code>-gate to this circuit.
+     * 
+     * @param andGateName the name of the gate.
+     */
     public void addAndGate(String andGateName) {
         checkEditable();
         checkNewGateName(andGateName);
@@ -81,6 +133,11 @@ public final class Circuit extends AbstractCircuitComponent {
         componentMap.put(andGateName, andGate);
     }
     
+    /**
+     * Adds a new <code>OR</code>-gate to this circuit.
+     * 
+     * @param orGateName the name of the gate.
+     */
     public void addOrGate(String orGateName) {
         checkEditable();
         checkNewGateName(orGateName);
@@ -88,6 +145,11 @@ public final class Circuit extends AbstractCircuitComponent {
         componentMap.put(orGateName, orGate);
     }
     
+    /**
+     * Adds a subcircuit to this circuit.
+     * 
+     * @param circuit the subcircuit to add.
+     */
     public void addCircuit(Circuit circuit) {
         checkEditable();
         checkNewGateName(circuit.getName());
@@ -102,6 +164,11 @@ public final class Circuit extends AbstractCircuitComponent {
         return numberOfOutputPins;
     }
     
+    /**
+     * Performs a single cycle of this circuit.
+     * 
+     * @return dummy value.
+     */
     @Override
     public boolean doCycle() {
         for (OutputGate outputGate : outputGates) {
@@ -111,6 +178,14 @@ public final class Circuit extends AbstractCircuitComponent {
         return false;
     }
     
+    /**
+     * Sets the states of all the input pins. If the length of {@code bits} is 
+     * smaller than the number of input pins in this circuit, the rest of input
+     * pins are set to zero. If the length of {@code bits} is greater than the 
+     * number of input pins, the overflowing values of {@code bits} are ignored.
+     * 
+     * @param bits the bit vector.
+     */
     public void setInputBits(boolean... bits) {
         Objects.requireNonNull(bits, "The input bit array is null.");
         unsetAllInputPins();
@@ -120,6 +195,11 @@ public final class Circuit extends AbstractCircuitComponent {
         }
     }
     
+    /**
+     * Returns a bit vector representing a result of a circuit cycle.
+     * 
+     * @return a bit vector.
+     */
     public boolean[] getOutputBits() {
         boolean[] bits = new boolean[numberOfOutputPins];
         
@@ -130,6 +210,10 @@ public final class Circuit extends AbstractCircuitComponent {
         return bits;
     }
     
+    /**
+     * Attempts to produce a logical circuit with minimal possible number of 
+     * gates that is equivalent to this circuit.
+     */
     public void minimize() {
         checkEditable();
         minimized = true;
@@ -138,6 +222,12 @@ public final class Circuit extends AbstractCircuitComponent {
         checkIsDagInBackwardDirection();
     }
     
+    /**
+     * Initiates a call for connecting some gates.
+     * 
+     * @param sourceComponentName the source component name.
+     * @return a target component selector.
+     */
     public TargetComponentSelector connect(String sourceComponentName) {
         checkEditable();
         return new TargetComponentSelector(sourceComponentName);
@@ -246,6 +336,7 @@ public final class Circuit extends AbstractCircuitComponent {
                 BranchWire jointWire = new BranchWire();
                 jointWire.connectTo(sourceComponent.getOutputComponent());
                 sourceComponent.setOutputComponent(jointWire);
+                jointWire.setInputComponent(sourceComponent);
                 ((AbstractDoubleInputPinCircuitComponent) targetComponent)
                         .setInputComponent1(jointWire);
                 jointWire.connectTo(targetComponent);
@@ -313,6 +404,7 @@ public final class Circuit extends AbstractCircuitComponent {
                 BranchWire jointWire = new BranchWire();
                 jointWire.connectTo(sourceComponent.getOutputComponent());
                 sourceComponent.setOutputComponent(jointWire);
+                jointWire.setInputComponent(sourceComponent);
                 ((AbstractDoubleInputPinCircuitComponent) targetComponent)
                         .setInputComponent2(jointWire);
                 jointWire.connectTo(targetComponent);
@@ -380,6 +472,7 @@ public final class Circuit extends AbstractCircuitComponent {
                 BranchWire jointWire = new BranchWire();
                 jointWire.connectTo(sourceComponent.getOutputComponent());
                 sourceComponent.setOutputComponent(jointWire);
+                jointWire.setInputComponent(sourceComponent);
                 ((AbstractSingleInputPinCircuitComponent) targetComponent)
                         .setInputComponent(jointWire);
                 jointWire.connectTo(targetComponent);

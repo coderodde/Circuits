@@ -94,7 +94,7 @@ public class CircuitTest {
         
         for (boolean bit0 : new boolean[] { false, true }) {
             for (boolean bit1 : new boolean[] { false, true }) {
-                boolean expected = (bit0 && !bit1) || (!bit0 || bit1);
+                boolean expected = (bit0 && !bit1) || (!bit0 && bit1);
                 circuit.setInputBits(bit0, bit1);
                 circuit.doCycle();
                 assertEquals(expected, circuit.getOutputBits()[0]);
