@@ -220,7 +220,7 @@ public final class Circuit extends AbstractCircuitComponent {
                 throwComponentNotPresent(targetComponentName);
             }
             
-            checkIsDoubleInputGate(targetComponent);
+            checkIsDoubleInputGate(targetComponent); ////
             
             if (((AbstractDoubleInputPinCircuitComponent) targetComponent)
                     .getInputComponent1() != null) {
@@ -578,7 +578,9 @@ public final class Circuit extends AbstractCircuitComponent {
         
         for (AbstractCircuitComponent inputComponent : inputGates) {
             if (hasCycleForward(inputComponent, closed)) {
-                throw new CycleException();
+                throw new ForwardCycleException(
+                        "Forward cycle detected in circuit \"" + getName() + 
+                        "\".");
             }
         }
     }
@@ -588,7 +590,9 @@ public final class Circuit extends AbstractCircuitComponent {
         
         for (AbstractCircuitComponent outputComponent : outputGates) {
             if (hasCycleBackwards(outputComponent, closed)) {
-                throw new CycleException();
+                throw new BackwardCycleException(
+                        "Backward cycle detected in circuit \"" + getName() + 
+                        "\".");
             }
         }
     }

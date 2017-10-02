@@ -5,13 +5,26 @@ import org.junit.Test;
 
 public class CircuitTest {
     
-    @Test(expected = CycleException.class)
-    public void testFindsCycle() {
+    @Test(expected = ForwardCycleException.class)
+    public void testFindsForwardCycle() {
         Circuit circuit = new Circuit("myCircuit", 1, 1);
         circuit.addAndGate("and1");
         circuit.connect("inputPin0").toFirstPinOf("and1");
         circuit.connect("and1").to("outputPin0");
         circuit.connect("and1").toSecondPinOf("and1");
+        circuit.minimize();
+    }
+    
+    @Test(expected = BackwardCycleException.class)
+    public void testFindBackwardCycle() {
+        Circuit circuit = new Circuit("c", 1, 1);
+        circuit.addOrGate("or");
+        circuit.addAndGate("and");
+        circuit.connect("inputPin0").toFirstPinOf("or");
+        circuit.connect("and").toSecondPinOf("or");
+        circuit.connect("or").to("outputPin0");
+        circuit.connect("and").toFirstPinOf("and");
+        circuit.connect("and").toSecondPinOf("and");
         circuit.minimize();
     }
     
@@ -53,6 +66,38 @@ public class CircuitTest {
                         assertEquals(expected, result[0]);
                     }
                 }
+            }
+        }
+    }
+    
+    @Test
+    public void test2() {
+        Circuit circuit = new Circuit("c", 2, 1);
+        
+        circuit.addAndGate("and1");
+        circuit.addAndGate("and2");
+        circuit.addNotGate("not1");
+        circuit.addNotGate("not2");
+        circuit.addOrGate("or");
+        
+        circuit.connect("inputPin0").toFirstPinOf("and1");
+        circuit.connect("inputPin1").to("not1");
+        circuit.connect("not1").toSecondPinOf("and1");
+        
+        circuit.connect("inputPin0").to("not2");
+        circuit.connect("not2").toFirstPinOf("and2");
+        circuit.connect("inputPin1").toSecondPinOf("and2");
+        
+        circuit.connect("and1").toFirstPinOf("or");
+        circuit.connect("and2").toSecondPinOf("or");
+        circuit.connect("or").to("outputPin0");
+        
+        for (boolean bit0 : new boolean[] { false, true }) {
+            for (boolean bit1 : new boolean[] { false, true }) {
+                boolean expected = (bit0 && !bit1) || (!bit0 || bit1);
+                circuit.setInputBits(bit0, bit1);
+                circuit.doCycle();
+                assertEquals(expected, circuit.getOutputBits()[0]);
             }
         }
     }
