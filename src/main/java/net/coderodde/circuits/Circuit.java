@@ -276,41 +276,10 @@ public final class Circuit extends AbstractCircuitComponent {
         }
         
         public void toFirstPinOf(String targetComponentName) {
-            Objects.requireNonNull(targetComponentName, 
-                                   "The target component name is null.");
+            AbstractCircuitComponent targetComponent =
+                    getTargetComponent(targetComponentName);
             
-            AbstractCircuitComponent targetComponent;
-            
-            if (targetComponentName.contains(".")) {
-                String[] nameComponents = targetComponentName.split("\\.");
-                
-                if (nameComponents.length != 2) {
-                    throw new IllegalArgumentException(
-                            "More than one dot operators: " + 
-                                    targetComponentName);
-                }
-                
-                Circuit subcircuit = 
-                        (Circuit) componentMap.get(nameComponents[0]);
-                
-                if (subcircuit == null) {
-                    throw new IllegalArgumentException(
-                            "Subcircuit \"" + nameComponents[0] + "\" is " +
-                            "not present in this circuit (" + getName() +
-                            ").");
-                }
-                
-                targetComponent = 
-                        subcircuit.componentMap.get(nameComponents[1]);
-            } else {
-                targetComponent = componentMap.get(targetComponentName);
-            }
-            
-            if (targetComponent == null) {
-                throwComponentNotPresent(targetComponentName);
-            }
-            
-            checkIsDoubleInputGate(targetComponent); ////
+            checkIsDoubleInputGate(targetComponent);
             
             if (((AbstractDoubleInputPinCircuitComponent) targetComponent)
                     .getInputComponent1() != null) {
@@ -344,39 +313,8 @@ public final class Circuit extends AbstractCircuitComponent {
         }
         
         public void toSecondPinOf(String targetComponentName) {
-            Objects.requireNonNull(targetComponentName,
-                                   "The target component name is null.");
-            
-            AbstractCircuitComponent targetComponent;
-            
-            if (targetComponentName.contains(".")) {
-                String[] nameComponents = targetComponentName.split("\\.");
-                
-                if (nameComponents.length != 2) {
-                    throw new IllegalArgumentException(
-                            "More than one dot operators: " +
-                                    targetComponentName);
-                }
-                
-                Circuit subcircuit = 
-                        (Circuit) componentMap.get(nameComponents[0]);
-                
-                if (subcircuit == null) {
-                    throw new IllegalArgumentException(
-                            "Subcircuit \"" + nameComponents[0] + "\" is " +
-                            "not present in this circuit (" + getName() +
-                            ").");
-                }
-                
-                targetComponent = 
-                        subcircuit.componentMap.get(nameComponents[1]);
-            } else {
-                targetComponent = componentMap.get(targetComponentName);
-            }
-            
-            if (targetComponent == null) {
-                throwComponentNotPresent(targetComponentName);
-            }
+            AbstractCircuitComponent targetComponent = 
+                    getTargetComponent(targetComponentName);
             
             checkIsDoubleInputGate(targetComponent);
             
@@ -412,39 +350,8 @@ public final class Circuit extends AbstractCircuitComponent {
         }
         
         public void to(String targetComponentName) {
-            Objects.requireNonNull(targetComponentName,
-                                   "The target component name is null.");
-            
-            AbstractCircuitComponent targetComponent;
-            
-            if (targetComponentName.contains(".")) {
-                String[] nameComponents = targetComponentName.split("\\.");
-                
-                if (nameComponents.length != 2) {
-                    throw new IllegalArgumentException(
-                            "More than one dot operators: " + 
-                                    targetComponentName);
-                }
-                
-                Circuit subcircuit = 
-                        (Circuit) componentMap.get(nameComponents[0]);
-                
-                if (subcircuit == null) {
-                    throw new IllegalArgumentException(
-                            "Subcircuit \"" + nameComponents[0] + "\" is " +
-                            "not present in this circuit (" + getName() + 
-                            ").");
-                }
-                
-                targetComponent = 
-                        subcircuit.componentMap.get(nameComponents[1]);
-            } else {
-                targetComponent = componentMap.get(targetComponentName);
-            }
-            
-            if (targetComponent == null) {
-                throwComponentNotPresent(targetComponentName);
-            }
+            AbstractCircuitComponent targetComponent =
+                    getTargetComponent(targetComponentName);
             
             checkIsSingleInputGate(targetComponent);
             
@@ -477,6 +384,49 @@ public final class Circuit extends AbstractCircuitComponent {
                         .setInputComponent(jointWire);
                 jointWire.connectTo(targetComponent);
             }
+        }
+        
+        private AbstractCircuitComponent 
+        getTargetComponent(String targetComponentName) {
+            Objects.requireNonNull(targetComponentName,
+                                   "The target component name is null.");
+            
+            AbstractCircuitComponent targetComponent;
+            
+            if (targetComponentName.contains(".")) {
+                String[] targetComponentNameComponents = 
+                        targetComponentName.split("\\.");
+                
+                if (targetComponentNameComponents.length != 2) {
+                    throw new IllegalArgumentException(
+                            "More than one dot operators in \"" +
+                                    targetComponentName + "\".");
+                }
+                
+                Circuit subcircuit = 
+                        (Circuit) 
+                        componentMap.get(targetComponentNameComponents[0]);
+                
+                if (subcircuit == null) {
+                    throw new IllegalStateException(
+                            "Subcircuit \"" + targetComponentNameComponents[0] +
+                            "\" not present in circuit \"" + getName() + "\".");
+                }
+                
+                targetComponent = 
+                        subcircuit.componentMap
+                                  .get(targetComponentNameComponents[1]);
+            } else {
+                targetComponent = componentMap.get(targetComponentName);
+            }
+            
+            if (targetComponent == null) {
+                throw new IllegalStateException(
+                        "The component \"" + targetComponentName + "\" is " + 
+                        "not present in circuit \"" + getName() + "\".");
+            }
+            
+            return targetComponent;
         }
         
         private void throwComponentNotPresent(String componentName) {
