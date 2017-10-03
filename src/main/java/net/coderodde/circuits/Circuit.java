@@ -178,6 +178,12 @@ public final class Circuit extends AbstractCircuitComponent {
         return false;
     }
     
+    public boolean[] doCycle(boolean... bits) {
+        setInputBits(bits);
+        doCycle();
+        return getOutputBits();
+    }
+    
     /**
      * Sets the states of all the input pins. If the length of {@code bits} is 
      * smaller than the number of input pins in this circuit, the rest of input
@@ -231,6 +237,16 @@ public final class Circuit extends AbstractCircuitComponent {
     public TargetComponentSelector connect(String sourceComponentName) {
         checkEditable();
         return new TargetComponentSelector(sourceComponentName);
+    }
+
+    @Override
+    public List<AbstractCircuitComponent> getInputComponents() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public List<AbstractCircuitComponent> getOutputComponents() {
+        throw new UnsupportedOperationException();
     }
     
     public final class TargetComponentSelector {
@@ -450,6 +466,10 @@ public final class Circuit extends AbstractCircuitComponent {
         }
     }
     
+    Map<String, AbstractCircuitComponent> getComponentMap() {
+        return componentMap;
+    }
+    
     private void checkEditable() {
         if (minimized) {
             throw new IllegalStateException(
@@ -640,60 +660,6 @@ public final class Circuit extends AbstractCircuitComponent {
         }
     }
     
-    private static List<AbstractCircuitComponent> 
-        forwardExpand(AbstractCircuitComponent component) {
-        if (component instanceof BranchWire) {
-            return new ArrayList<>(((BranchWire) component).getOutputs());
-        } 
-        
-        if (component instanceof AbstractSingleInputPinCircuitComponent) {
-            if (component.getOutputComponent() == null) {
-                return Collections.emptyList();
-            }
-            
-            return Arrays.asList(component.getOutputComponent());
-        } 
-        
-        if (component instanceof AbstractDoubleInputPinCircuitComponent) {
-            if (component.getOutputComponent() == null) {
-                return Collections.emptyList();
-            }
-            
-            return Arrays.asList(component.getOutputComponent());
-        }
-        
-        throw new IllegalStateException("Unknown gate type.");
-    }
-        
-    private static List<AbstractCircuitComponent>
-        backwardExpand(AbstractCircuitComponent component) {
-        if (component instanceof AbstractSingleInputPinCircuitComponent) {
-            if (((AbstractSingleInputPinCircuitComponent) component)
-                    .getInputComponent() == null) {
-                return Collections.emptyList();
-            }
-            
-            return Arrays.asList(
-                    ((AbstractSingleInputPinCircuitComponent) component)
-                            .getInputComponent());
-        }       
-        
-        if (component instanceof AbstractDoubleInputPinCircuitComponent) {
-            AbstractDoubleInputPinCircuitComponent c = 
-                    (AbstractDoubleInputPinCircuitComponent) component;
-            
-            if (c.getInputComponent1() == null 
-                    || c.getInputComponent2() == null) {
-                return Collections.emptyList();
-            }
-            
-            return Arrays.asList(c.getInputComponent1(),
-                                 c.getInputComponent2());
-        }
-        
-        throw new IllegalStateException("Unknown gate type.");
-    }
-    
     private boolean hasCycleForward(AbstractCircuitComponent component, 
                              Set<AbstractCircuitComponent> closed) {
         if (closed.contains(component)) {
@@ -702,7 +668,7 @@ public final class Circuit extends AbstractCircuitComponent {
         
         closed.add(component);
         
-        for (AbstractCircuitComponent child : forwardExpand(component)) {
+        for (AbstractCircuitComponent child : component.getOutputComponents()) {
             if (hasCycleForward(child, closed)) {
                 return true;
             }
@@ -719,7 +685,7 @@ public final class Circuit extends AbstractCircuitComponent {
         
         closed.add(component);
         
-        for (AbstractCircuitComponent parent : backwardExpand(component)) {
+        for (AbstractCircuitComponent parent : component.getInputComponents()) {
             if (hasCycleBackwards(parent, closed)) {
                 return true;
             }
@@ -727,5 +693,4 @@ public final class Circuit extends AbstractCircuitComponent {
         
         return false;
     }
-    
 }

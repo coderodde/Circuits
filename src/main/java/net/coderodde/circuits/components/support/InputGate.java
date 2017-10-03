@@ -1,5 +1,10 @@
 package net.coderodde.circuits.components.support;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import net.coderodde.circuits.components.AbstractCircuitComponent;
 import net.coderodde.circuits.components.AbstractSingleInputPinCircuitComponent;
 
 public final class InputGate extends AbstractSingleInputPinCircuitComponent {
@@ -7,8 +12,6 @@ public final class InputGate extends AbstractSingleInputPinCircuitComponent {
     public static final boolean DEFAULT_BIT = false;
     
     private boolean bit;
-    
-    
     
     public InputGate(String name, boolean bit) {
         super(name);
@@ -34,5 +37,23 @@ public final class InputGate extends AbstractSingleInputPinCircuitComponent {
         }
         
         return bit;
+    }
+
+    @Override
+    public List<AbstractCircuitComponent> getInputComponents() {
+        if (input == null) {
+            return Collections.<AbstractCircuitComponent>emptyList();
+        }
+        
+        return Arrays.asList(input);
+    }
+
+    @Override
+    public List<AbstractCircuitComponent> getOutputComponents() {
+        if (output instanceof BranchWire) {
+            return new ArrayList<>(((BranchWire) output).getOutputs());
+        }
+        
+        return Arrays.asList(output);
     }
 }

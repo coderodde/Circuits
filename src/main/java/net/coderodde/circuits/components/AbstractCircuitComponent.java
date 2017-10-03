@@ -1,5 +1,7 @@
 package net.coderodde.circuits.components;
 
+import java.util.List;
+
 public abstract class AbstractCircuitComponent {
 
     private final String name;
@@ -27,4 +29,7 @@ public abstract class AbstractCircuitComponent {
     public void setOutputComponent(AbstractCircuitComponent output) {
         this.output = output;
     }
+    
+    public abstract List<AbstractCircuitComponent> getInputComponents();
+    public abstract List<AbstractCircuitComponent> getOutputComponents();
 }
