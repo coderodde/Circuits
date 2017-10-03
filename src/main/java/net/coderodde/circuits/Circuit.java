@@ -1,8 +1,6 @@
 package net.coderodde.circuits;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -107,6 +105,15 @@ public final class Circuit extends AbstractCircuitComponent {
             componentMap.put(outputComponentName, outputComponent);
             outputGates.add(outputComponent);
         }
+    }
+    
+    /**
+     * Returns the number of components in this circuit.
+     * 
+     * @return the number of components.
+     */
+    public int size() {
+        return componentMap.size();
     }
     
     /**
