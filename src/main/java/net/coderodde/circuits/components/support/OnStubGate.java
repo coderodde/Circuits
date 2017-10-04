@@ -10,9 +10,9 @@ import net.coderodde.circuits.components.AbstractSingleInputPinCircuitComponent;
  * @author Rodion "rodde" Efremov
  * @version 1.6 (Oct 3, 2017)
  */
-final class OnStubGate extends AbstractSingleInputPinCircuitComponent {
+public final class OnStubGate extends AbstractSingleInputPinCircuitComponent {
 
-    OnStubGate() {
+    public OnStubGate() {
         super(null);
     }
     

@@ -53,6 +53,12 @@ public final class Circuit extends AbstractCircuitComponent {
             new TreeMap<>();
     
     /**
+     * Contains all current gates, both named and unnamed (such as 
+     * {@code OffStubGate} and so on).
+     */
+    private final Set<AbstractCircuitComponent> componentSet = new HashSet<>();
+    
+    /**
      * The number of input pins in this circuit.
      */
     private final int numberOfInputPins;
@@ -97,6 +103,7 @@ public final class Circuit extends AbstractCircuitComponent {
             InputGate inputComponent = new InputGate(inputComponentName);
             componentMap.put(inputComponentName, inputComponent);
             inputGates.add(inputComponent);
+            addComponent(inputComponent);
         }
         
         for (int outputPin = 0; outputPin < outputPins; ++outputPin) {
@@ -104,6 +111,7 @@ public final class Circuit extends AbstractCircuitComponent {
             OutputGate outputComponent = new OutputGate(outputComponentName);
             componentMap.put(outputComponentName, outputComponent);
             outputGates.add(outputComponent);
+            addComponent(outputComponent);
         }
     }
     
@@ -113,7 +121,7 @@ public final class Circuit extends AbstractCircuitComponent {
      * @return the number of components.
      */
     public int size() {
-        return componentMap.size();
+        return componentSet.size();
     }
     
     /**
@@ -126,6 +134,7 @@ public final class Circuit extends AbstractCircuitComponent {
         checkNewGateName(notGateName);
         NotGate notGate = new NotGate(notGateName);
         componentMap.put(notGateName, notGate);
+        componentSet.add(notGate);
     }
     
     /**
@@ -138,6 +147,7 @@ public final class Circuit extends AbstractCircuitComponent {
         checkNewGateName(andGateName);
         AndGate andGate = new AndGate(andGateName);
         componentMap.put(andGateName, andGate);
+        componentSet.add(andGate);
     }
     
     /**
@@ -150,6 +160,7 @@ public final class Circuit extends AbstractCircuitComponent {
         checkNewGateName(orGateName);
         OrGate orGate = new OrGate(orGateName);
         componentMap.put(orGateName, orGate);
+        componentSet.add(orGate);
     }
     
     /**
@@ -161,6 +172,7 @@ public final class Circuit extends AbstractCircuitComponent {
         checkEditable();
         checkNewGateName(circuit.getName());
         componentMap.put(circuit.getName(), circuit);
+        componentSet.add(circuit);
     }
     
     public int getNumberOfInputPins() {
@@ -227,12 +239,16 @@ public final class Circuit extends AbstractCircuitComponent {
      * Attempts to produce a logical circuit with minimal possible number of 
      * gates that is equivalent to this circuit.
      */
-    public void minimize() {
-        checkEditable();
+    public void minimize(CircuitMinimizer minimizer) {
+        if (minimized) {
+            return;
+        }
+        
         minimized = true;
         checkAllPinsAreConnected();
         checkIsDagInForwardDirection();
         checkIsDagInBackwardDirection();
+        minimizer.minimize(this);
     }
     
     /**
@@ -248,12 +264,12 @@ public final class Circuit extends AbstractCircuitComponent {
 
     @Override
     public List<AbstractCircuitComponent> getInputComponents() {
-        throw new UnsupportedOperationException();
+        return new ArrayList<>(inputGates);
     }
 
     @Override
     public List<AbstractCircuitComponent> getOutputComponents() {
-        throw new UnsupportedOperationException();
+        return new ArrayList<>(outputGates);
     }
     
     public final class TargetComponentSelector {
@@ -324,14 +340,15 @@ public final class Circuit extends AbstractCircuitComponent {
                 ((BranchWire) sourceComponent.getOutputComponent())
                         .connectTo(targetComponent);
             } else {
-                // Change an existing wire with JointWire.
-                BranchWire jointWire = new BranchWire();
-                jointWire.connectTo(sourceComponent.getOutputComponent());
-                sourceComponent.setOutputComponent(jointWire);
-                jointWire.setInputComponent(sourceComponent);
+                // Change an existing wire with BranchWire.
+                BranchWire branchWire = new BranchWire();
+                addComponent(branchWire);
+                branchWire.connectTo(sourceComponent.getOutputComponent());
+                sourceComponent.setOutputComponent(branchWire);
+                branchWire.setInputComponent(sourceComponent);
                 ((AbstractDoubleInputPinCircuitComponent) targetComponent)
-                        .setInputComponent1(jointWire);
-                jointWire.connectTo(targetComponent);
+                        .setInputComponent1(branchWire);
+                branchWire.connectTo(targetComponent);
             }
         }
         
@@ -361,14 +378,15 @@ public final class Circuit extends AbstractCircuitComponent {
                 ((BranchWire) sourceComponent.getOutputComponent())
                         .connectTo(targetComponent);
             } else {
-                // Change an existing wire with JointWire.
-                BranchWire jointWire = new BranchWire();
-                jointWire.connectTo(sourceComponent.getOutputComponent());
-                sourceComponent.setOutputComponent(jointWire);
-                jointWire.setInputComponent(sourceComponent);
+                // Change an existing wire with BranchWire.
+                BranchWire branchWire = new BranchWire();
+                addComponent(branchWire);
+                branchWire.connectTo(sourceComponent.getOutputComponent());
+                sourceComponent.setOutputComponent(branchWire);
+                branchWire.setInputComponent(sourceComponent);
                 ((AbstractDoubleInputPinCircuitComponent) targetComponent)
-                        .setInputComponent2(jointWire);
-                jointWire.connectTo(targetComponent);
+                        .setInputComponent2(branchWire);
+                branchWire.connectTo(targetComponent);
             }
         }
         
@@ -398,14 +416,15 @@ public final class Circuit extends AbstractCircuitComponent {
                 ((BranchWire) sourceComponent.getOutputComponent())
                         .connectTo(targetComponent);
             } else {
-                // Change an existing wire with JointWire.
-                BranchWire jointWire = new BranchWire();
-                jointWire.connectTo(sourceComponent.getOutputComponent());
-                sourceComponent.setOutputComponent(jointWire);
-                jointWire.setInputComponent(sourceComponent);
+                // Change an existing wire with BranchWire.
+                BranchWire branchWire = new BranchWire();
+                addComponent(branchWire);
+                branchWire.connectTo(sourceComponent.getOutputComponent());
+                sourceComponent.setOutputComponent(branchWire);
+                branchWire.setInputComponent(sourceComponent);
                 ((AbstractSingleInputPinCircuitComponent) targetComponent)
-                        .setInputComponent(jointWire);
-                jointWire.connectTo(targetComponent);
+                        .setInputComponent(branchWire);
+                branchWire.connectTo(targetComponent);
             }
         }
         
@@ -475,6 +494,18 @@ public final class Circuit extends AbstractCircuitComponent {
     
     Map<String, AbstractCircuitComponent> getComponentMap() {
         return componentMap;
+    }
+    
+    Set<AbstractCircuitComponent> getComponentSet() {
+        return componentSet;
+    }
+    
+    void addComponent(AbstractCircuitComponent component) {
+        componentSet.add(component);
+    }
+    
+    void removeComponent(AbstractCircuitComponent component) {
+        componentSet.remove(component);
     }
     
     private void checkEditable() {

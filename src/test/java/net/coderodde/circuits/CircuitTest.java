@@ -12,7 +12,7 @@ public class CircuitTest {
         circuit.connect("inputPin0").toFirstPinOf("and1");
         circuit.connect("and1").to("outputPin0");
         circuit.connect("and1").toSecondPinOf("and1");
-        circuit.minimize();
+        circuit.minimize(new BruteForceCircuitMinimizer());
     }
     
     @Test(expected = BackwardCycleException.class)
@@ -25,7 +25,7 @@ public class CircuitTest {
         circuit.connect("or").to("outputPin0");
         circuit.connect("and").toFirstPinOf("and");
         circuit.connect("and").toSecondPinOf("and");
-        circuit.minimize();
+        circuit.minimize(new BruteForceCircuitMinimizer());
     }
     
     @Test(expected = InputPinOccupiedException.class)
@@ -35,7 +35,7 @@ public class CircuitTest {
         circuit.connect("inputPin0").to("outputPin0");
         circuit.connect("inputPin0").to("not");
         circuit.connect("not").to("outputPin0");
-        circuit.minimize();
+        circuit.minimize(new BruteForceCircuitMinimizer());
     }
     
     @Test
@@ -132,5 +132,22 @@ public class CircuitTest {
                 assertEquals(expected, circuit.getOutputBits()[0]);
             }
         }
+    }
+    
+    @Test
+    public void testMinimizedUnreachableGates() {
+        Circuit c = new Circuit("yeah", 1, 1);
+        c.connect("inputPin0").to("outputPin0");
+        c.addNotGate("not1");
+        c.addNotGate("not2");
+        c.connect("not1").to("not2");
+        c.connect("not2").to("not1");
+        c.addOrGate("or");
+        c.connect("or").toFirstPinOf("or");
+        c.connect("or").toSecondPinOf("or");
+        
+        assertEquals(6, c.size());
+        c.minimize(new BruteForceCircuitMinimizer());
+        assertEquals(2, c.size());
     }
 }

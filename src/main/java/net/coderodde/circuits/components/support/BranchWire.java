@@ -26,6 +26,10 @@ public final class BranchWire extends AbstractSingleInputPinCircuitComponent {
         outputs.add(circuitComponent);
     }
     
+    public void removeFrom(AbstractCircuitComponent circuitComponent) {
+        outputs.remove(circuitComponent);
+    }
+    
     public Set<AbstractCircuitComponent> getOutputs() {
         return Collections.unmodifiableSet(outputs);
     }
