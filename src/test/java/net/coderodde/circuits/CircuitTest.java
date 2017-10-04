@@ -1,6 +1,7 @@
 package net.coderodde.circuits;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import org.junit.Test;
 
 public class CircuitTest {
@@ -149,5 +150,23 @@ public class CircuitTest {
         assertEquals(6, c.size());
         c.minimize(new BruteForceCircuitMinimizer());
         assertEquals(2, c.size());
+    }
+    
+    @Test
+    public void testMinimizeNotToAnd1Input() {
+        Circuit c = new Circuit("c", 1, 1);
+        c.addAndGate("and");
+        c.addNotGate("not");
+        c.connect("inputPin0").to("not");
+        c.connect("not").toFirstPinOf("and");
+        c.connect("inputPin0").toSecondPinOf("and");
+        c.connect("and").to("outputPin0");
+       
+        assertEquals(5, c.size());
+        c.minimize(new BruteForceCircuitMinimizer());
+        assertEquals(3, c.size());
+        
+        assertFalse(c.doCycle(false)[0]);
+        assertFalse(c.doCycle(true)[0]);
     }
 }

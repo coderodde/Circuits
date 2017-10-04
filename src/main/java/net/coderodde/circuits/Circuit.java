@@ -1,6 +1,7 @@
 package net.coderodde.circuits;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -674,61 +675,77 @@ public final class Circuit extends AbstractCircuitComponent {
         }
     }
     
+    private enum NodeColor {
+        WHITE,
+        GRAY,
+        BLACK
+    }
+    
     private void checkIsDagInForwardDirection() {
-        Set<AbstractCircuitComponent> closed = new HashSet<>();
-        
-        for (AbstractCircuitComponent inputComponent : inputGates) {
-            if (hasCycleForward(inputComponent, closed)) {
-                throw new ForwardCycleException(
-                        "Forward cycle detected in circuit \"" + getName() + 
-                        "\".");
-            }
-        }
+       Map<AbstractCircuitComponent, NodeColor> colors = new HashMap<>();
+       
+       for (AbstractCircuitComponent component : componentSet) {
+           colors.put(component, NodeColor.WHITE);
+       }
+       
+       for (AbstractCircuitComponent component : inputGates) {
+           if (colors.get(component).equals(NodeColor.WHITE)) {
+               dfsForwardVisit(component, colors);
+           }
+       }
     }
     
     private void checkIsDagInBackwardDirection() {
-        Set<AbstractCircuitComponent> closed = new HashSet<>();
+        Map<AbstractCircuitComponent, NodeColor> colors = new HashMap<>();
         
-        for (AbstractCircuitComponent outputComponent : outputGates) {
-            if (hasCycleBackwards(outputComponent, closed)) {
-                throw new BackwardCycleException(
-                        "Backward cycle detected in circuit \"" + getName() + 
-                        "\".");
+        for (AbstractCircuitComponent component : componentSet) {
+            colors.put(component, NodeColor.WHITE);
+        }
+        
+        for (AbstractCircuitComponent component : outputGates) {
+            if (colors.get(component).equals(NodeColor.WHITE)) {
+                dfsBackwardVisit(component, colors);
             }
         }
     }
     
-    private boolean hasCycleForward(AbstractCircuitComponent component, 
-                             Set<AbstractCircuitComponent> closed) {
-        if (closed.contains(component)) {
-            return true;
-        }
-        
-        closed.add(component);
+    private void dfsForwardVisit(
+            AbstractCircuitComponent component,
+            Map<AbstractCircuitComponent, NodeColor> colors) {
+        colors.put(component, NodeColor.GRAY);
         
         for (AbstractCircuitComponent child : component.getOutputComponents()) {
-            if (hasCycleForward(child, closed)) {
-                return true;
+            if (colors.get(child).equals(NodeColor.GRAY)) {
+                throw new ForwardCycleException(
+                        "Forward cycle detected in circuit \"" + getName() +
+                        "\".");
+            }
+            
+            if (colors.get(child).equals(NodeColor.WHITE)) {
+                dfsForwardVisit(child, colors);
             }
         }
         
-        return false;
+        colors.put(component, NodeColor.BLACK);
     }
     
-    private boolean hasCycleBackwards(AbstractCircuitComponent component,
-                                     Set<AbstractCircuitComponent> closed) {
-        if (closed.contains(component)) {
-            return true;
-        }
-        
-        closed.add(component);
+    private void dfsBackwardVisit(
+            AbstractCircuitComponent component,
+            Map<AbstractCircuitComponent, NodeColor> colors) {
+        colors.put(component, NodeColor.GRAY);
         
         for (AbstractCircuitComponent parent : component.getInputComponents()) {
-            if (hasCycleBackwards(parent, closed)) {
-                return true;
+            if (colors.get(parent).equals(NodeColor.GRAY)) {
+                throw new BackwardCycleException(
+                        "Backward cycle detected in circuit \"" + getName() +
+                        "\".");
+            }
+            
+            if (colors.get(parent).equals(NodeColor.WHITE)) {
+                dfsBackwardVisit(parent, colors);
             }
         }
         
-        return false;
+        colors.put(component, NodeColor.BLACK);
     }
 }
