@@ -13,6 +13,8 @@ import net.coderodde.circuits.components.support.AndGate;
 import net.coderodde.circuits.components.support.BranchWire;
 import net.coderodde.circuits.components.support.NotGate;
 import net.coderodde.circuits.components.support.OffStubGate;
+import net.coderodde.circuits.components.support.OnStubGate;
+import net.coderodde.circuits.components.support.OrGate;
 
 public final class BruteForceCircuitMinimizer implements CircuitMinimizer {
 
@@ -28,9 +30,6 @@ public final class BruteForceCircuitMinimizer implements CircuitMinimizer {
     }
     
     private void doMinimize(Circuit circuit) {
-        Map<String, AbstractCircuitComponent> componentMap = 
-                circuit.getComponentMap();
-        
         while (true) {
             if (tryRemoveSingleOutputBranchWire(circuit)) {
                 continue;
@@ -44,8 +43,38 @@ public final class BruteForceCircuitMinimizer implements CircuitMinimizer {
                 continue;
             }
             
+            if (tryRemoveOneNotToOr1(circuit)) {
+                continue;
+            }
+            
+            if (tryRemoveOneNotToOr2(circuit)) {
+                continue;
+            }
+            
             break;
         }
+    }
+    
+    private boolean tryRemoveOneNotToOr1Matches(
+            AbstractCircuitComponent candidateComponent) {
+        if (!(candidateComponent instanceof OrGate)) {
+            return false;
+        }
+        
+        OrGate orGate = (OrGate) candidateComponent;
+        
+        if (!(orGate.getInputComponent1() instanceof NotGate)) {
+            return false;
+        }
+        
+        if (orGate.getInputComponent2() instanceof NotGate) {
+            // Can be minimized but in another place.
+            return false;
+        }
+        
+        NotGate notGate = (NotGate) orGate.getInputComponent1();
+        
+        return notGate.getInputComponent() == orGate.getInputComponent2();
     }
     
     private boolean tryRemoveOneNotToAnd1Matches(
@@ -70,6 +99,27 @@ public final class BruteForceCircuitMinimizer implements CircuitMinimizer {
         return notGate.getInputComponent() == andGate.getInputComponent2();
     }
     
+    private boolean tryRemoveOneNotToOr2Matches(
+            AbstractCircuitComponent candidateComponent) {
+        if (!(candidateComponent instanceof OrGate)) {
+            return false;
+        }
+        
+        OrGate orGate = (OrGate) candidateComponent;
+        
+        if (!(orGate.getInputComponent2() instanceof NotGate)) {
+            return false;
+        }
+        
+        if (orGate.getInputComponent1() instanceof NotGate) {
+            return false;
+        }
+        
+        NotGate notGate = (NotGate) orGate.getInputComponent2();
+        
+        return notGate.getInputComponent() == orGate.getInputComponent1();
+    }
+    
     private boolean tryRemoveOneNotToAnd2Matches(
             AbstractCircuitComponent candidateComponent) {
         if (!(candidateComponent instanceof AndGate)) {
@@ -89,6 +139,61 @@ public final class BruteForceCircuitMinimizer implements CircuitMinimizer {
         NotGate notGate = (NotGate) andGate.getInputComponent2();
         
         return notGate.getInputComponent() == andGate.getInputComponent1();
+    }
+    
+    private boolean tryRemoveOneNotToOr2(Circuit circuit) {
+        OrGate targetOrGate = null;
+        
+        for (AbstractCircuitComponent component :
+                circuit.getComponentMap().values()) {
+            if (tryRemoveOneNotToOr2Matches(component)) {
+                targetOrGate = (OrGate) component;
+                break;
+            }
+        }
+        
+        if (targetOrGate == null) {
+            return false;
+        }
+        
+        BranchWire wire = (BranchWire) targetOrGate.getInputComponent1();
+        wire.removeFrom(targetOrGate);
+        wire.removeFrom(targetOrGate.getInputComponent2());
+        
+        OnStubGate onStubGate = new OnStubGate();
+        wire.connectTo(onStubGate);
+        onStubGate.setInputComponent(wire);
+        onStubGate.setOutputComponent(targetOrGate.getOutputComponent());
+        
+        // Update the component set.
+        circuit.addComponent(onStubGate);
+        circuit.removeComponent(targetOrGate);
+        circuit.removeComponent(targetOrGate.getInputComponent2());
+        
+        circuit.getComponentMap().remove(targetOrGate.getName());
+        circuit.getComponentMap().remove(targetOrGate.getInputComponent2()
+                                                     .getName());
+        
+        if (targetOrGate.getOutputComponent() 
+                instanceof AbstractSingleInputPinCircuitComponent) {
+            AbstractSingleInputPinCircuitComponent afterOrGate =
+                    (AbstractSingleInputPinCircuitComponent)
+                    targetOrGate.getOutputComponent();
+            
+            afterOrGate.setInputComponent(onStubGate);
+        } else {
+            AbstractDoubleInputPinCircuitComponent afterOrGate =
+                    (AbstractDoubleInputPinCircuitComponent) 
+                    targetOrGate.getOutputComponent();
+            
+            if (targetOrGate == afterOrGate.getInputComponent1()) {
+                afterOrGate.setInputComponent1(onStubGate);
+            } else {
+                afterOrGate.setInputComponent2(onStubGate);
+            }
+        }
+        
+        return true;
     }
     
     private boolean tryRemoveOneNotToAnd2(Circuit circuit) {
@@ -140,6 +245,61 @@ public final class BruteForceCircuitMinimizer implements CircuitMinimizer {
                 afterAndGate.setInputComponent1(offStubGate);
             } else {
                 afterAndGate.setInputComponent2(offStubGate);
+            }
+        }
+        
+        return true;
+    }
+    
+    private boolean tryRemoveOneNotToOr1(Circuit circuit) {
+        OrGate targetOrGate = null;
+        
+        for (AbstractCircuitComponent component :
+                circuit.getComponentMap().values()) {
+            if (tryRemoveOneNotToOr1Matches(component)) {
+                targetOrGate = (OrGate) component;
+                break;
+            }
+        }
+        
+        if (targetOrGate == null) {
+            return false;
+        }
+        
+        BranchWire wire = (BranchWire) targetOrGate.getInputComponent2();
+        wire.removeFrom(targetOrGate);
+        wire.removeFrom(targetOrGate.getInputComponent1());
+        
+        OnStubGate onStubGate = new OnStubGate();
+        wire.connectTo(onStubGate);
+        onStubGate.setInputComponent(wire);
+        onStubGate.setOutputComponent(targetOrGate.getOutputComponent());
+        
+        // Update the component set.
+        circuit.addComponent(onStubGate);
+        circuit.removeComponent(targetOrGate);
+        circuit.removeComponent(targetOrGate.getInputComponent1());
+        
+        circuit.getComponentMap().remove(targetOrGate.getName());
+        circuit.getComponentMap().remove(targetOrGate.getInputComponent1()
+                                                     .getName());
+        
+        if (targetOrGate.getOutputComponent()
+                instanceof AbstractSingleInputPinCircuitComponent) {
+            AbstractSingleInputPinCircuitComponent afterOrGate = 
+                    (AbstractSingleInputPinCircuitComponent)
+                    targetOrGate.getOutputComponent();
+            
+            afterOrGate.setInputComponent(onStubGate);
+        } else {
+            AbstractDoubleInputPinCircuitComponent afterOrGate = 
+                    (AbstractDoubleInputPinCircuitComponent)
+                    targetOrGate.getOutputComponent();
+            
+            if (targetOrGate == afterOrGate.getInputComponent1()) {
+                afterOrGate.setInputComponent1(onStubGate);
+            } else {
+                afterOrGate.setInputComponent2(onStubGate);
             }
         }
         

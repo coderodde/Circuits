@@ -2,6 +2,7 @@ package net.coderodde.circuits;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 public class CircuitTest {
@@ -40,6 +41,42 @@ public class CircuitTest {
         
         assertFalse(c.doCycle(false)[0]);
         assertFalse(c.doCycle(true)[0]);
+    }
+    
+    @Test
+    public void testMinimizeNotToOr1Input() {
+        Circuit c = new Circuit("c", 1, 1);
+        c.addOrGate("or");
+        c.addNotGate("not");
+        c.connect("inputPin0").to("not");
+        c.connect("not").toFirstPinOf("or");
+        c.connect("inputPin0").toSecondPinOf("or");
+        c.connect("or").to("outputPin0");
+       
+        assertEquals(5, c.size());
+        c.minimize(new BruteForceCircuitMinimizer());
+        assertEquals(3, c.size());
+        
+        assertTrue(c.doCycle(false)[0]);
+        assertTrue(c.doCycle(true)[0]);
+    }
+    
+    @Test
+    public void testMinimizeNotToOr2Input() {
+        Circuit c = new Circuit("c", 1, 1);
+        c.addOrGate("or");
+        c.addNotGate("not");
+        c.connect("inputPin0").to("not");
+        c.connect("not").toSecondPinOf("or");
+        c.connect("inputPin0").toFirstPinOf("or");
+        c.connect("or").to("outputPin0");
+       
+        assertEquals(5, c.size());
+        c.minimize(new BruteForceCircuitMinimizer());
+        assertEquals(3, c.size());
+        
+        assertTrue(c.doCycle(false)[0]);
+        assertTrue(c.doCycle(true)[0]);
     }
     
     @Test(expected = ForwardCycleException.class)
