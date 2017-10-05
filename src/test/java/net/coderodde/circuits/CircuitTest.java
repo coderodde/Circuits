@@ -79,6 +79,23 @@ public class CircuitTest {
         assertTrue(c.doCycle(true)[0]);
     }
     
+    @Test
+    public void testMinimizeTwoNots() {
+        Circuit c = new Circuit("c", 1, 1);
+        c.addNotGate("not1");
+        c.addNotGate("not2");
+        c.connect("inputPin0").to("not1");
+        c.connect("not1").to("not2");
+        c.connect("not2").to("outputPin0");
+        
+        assertEquals(4, c.size());
+        c.minimize(new BruteForceCircuitMinimizer());
+        assertEquals(2, c.size());
+        
+        assertFalse(c.doCycle(false)[0]);
+        assertTrue(c.doCycle(true)[0]);
+    }
+    
     @Test(expected = ForwardCycleException.class)
     public void testFindsForwardCycle() {
         Circuit circuit = new Circuit("myCircuit", 1, 1);

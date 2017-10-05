@@ -51,8 +51,76 @@ public final class BruteForceCircuitMinimizer implements CircuitMinimizer {
                 continue;
             }
             
+            if (tryRemoveTwoNots(circuit)) {
+                continue;
+            }
+            
             break;
         }
+    }
+    
+    private boolean tryRemoveTwoNotsMatches(
+            AbstractCircuitComponent candidateComponent) {
+        if (!(candidateComponent instanceof NotGate)) {
+            return false;
+        }
+        
+        NotGate notGate = (NotGate) candidateComponent;
+        return notGate.getInputComponent() instanceof NotGate;
+    }
+    
+    private boolean tryRemoveTwoNots(Circuit circuit) {
+        NotGate targetNotGate = null;
+        
+        for (AbstractCircuitComponent component :
+                circuit.getComponentMap().values()) {
+            if (tryRemoveTwoNotsMatches(component)) {
+                targetNotGate = (NotGate) component;
+                break;
+            }
+        }
+        
+        if (targetNotGate == null) {
+            return false;
+        }
+        
+        NotGate beforeTargetNotGate = 
+                (NotGate) targetNotGate.getInputComponent();
+        
+        beforeTargetNotGate.getInputComponent()
+                     .setOutputComponent(targetNotGate.getOutputComponent());
+        
+        AbstractCircuitComponent afterTargetNotGate = 
+                targetNotGate.getOutputComponent();
+        
+        if (afterTargetNotGate 
+                instanceof AbstractSingleInputPinCircuitComponent) {
+            AbstractSingleInputPinCircuitComponent tmpComponent = 
+                    (AbstractSingleInputPinCircuitComponent)
+                    afterTargetNotGate;
+            
+            tmpComponent.setInputComponent(beforeTargetNotGate.getInputComponent());
+        } else {
+            AbstractDoubleInputPinCircuitComponent tmpComponent =
+                    (AbstractDoubleInputPinCircuitComponent) 
+                    afterTargetNotGate;
+            
+            if (targetNotGate == tmpComponent.getInputComponent1()) {
+                tmpComponent.setInputComponent1(
+                        beforeTargetNotGate.getInputComponent());
+            } else {
+                tmpComponent.setInputComponent2(
+                        beforeTargetNotGate.getInputComponent());
+            }
+        }
+        
+        // Remove from not gates from the circuit.
+        circuit.removeComponent(targetNotGate);
+        circuit.removeComponent(beforeTargetNotGate);
+        
+        circuit.getComponentMap().remove(targetNotGate.getName());
+        circuit.getComponentMap().remove(beforeTargetNotGate.getName());
+        return true;
     }
     
     private boolean tryRemoveOneNotToOr1Matches(
