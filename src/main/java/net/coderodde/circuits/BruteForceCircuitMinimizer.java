@@ -40,6 +40,10 @@ public final class BruteForceCircuitMinimizer implements CircuitMinimizer {
                 continue;
             }
             
+            if (tryRemoveOneNotToAnd2(circuit)) {
+                continue;
+            }
+            
             break;
         }
     }
@@ -66,6 +70,82 @@ public final class BruteForceCircuitMinimizer implements CircuitMinimizer {
         return notGate.getInputComponent() == andGate.getInputComponent2();
     }
     
+    private boolean tryRemoveOneNotToAnd2Matches(
+            AbstractCircuitComponent candidateComponent) {
+        if (!(candidateComponent instanceof AndGate)) {
+            return false;
+        }
+        
+        AndGate andGate = (AndGate) candidateComponent;
+        
+        if (!(andGate.getInputComponent2() instanceof NotGate)) {
+            return false;
+        }
+        
+        if (andGate.getInputComponent1() instanceof NotGate) {
+            return false;
+        }
+        
+        NotGate notGate = (NotGate) andGate.getInputComponent2();
+        
+        return notGate.getInputComponent() == andGate.getInputComponent1();
+    }
+    
+    private boolean tryRemoveOneNotToAnd2(Circuit circuit) {
+        AndGate targetAndGate = null;
+        
+        for (AbstractCircuitComponent component :
+                circuit.getComponentMap().values()) {
+            if (tryRemoveOneNotToAnd2Matches(component)) {
+                targetAndGate = (AndGate) component;
+                break;
+            }
+        }
+        
+        if (targetAndGate == null) {
+            return false;
+        }
+        
+        BranchWire wire = (BranchWire) targetAndGate.getInputComponent1();
+        wire.removeFrom(targetAndGate);
+        wire.removeFrom(targetAndGate.getInputComponent2());
+        
+        OffStubGate offStubGate = new OffStubGate();
+        wire.connectTo(offStubGate);
+        offStubGate.setInputComponent(wire);
+        offStubGate.setOutputComponent(targetAndGate.getOutputComponent());
+        
+        // Update the component set.
+        circuit.addComponent(offStubGate);
+        circuit.removeComponent(targetAndGate);
+        circuit.removeComponent(targetAndGate.getInputComponent2());
+        
+        circuit.getComponentMap().remove(targetAndGate.getName());
+        circuit.getComponentMap().remove(targetAndGate.getInputComponent2()
+                                                      .getName());
+        
+        if (targetAndGate.getOutputComponent()
+                instanceof AbstractSingleInputPinCircuitComponent) {
+            AbstractSingleInputPinCircuitComponent afterAndGate =
+                    (AbstractSingleInputPinCircuitComponent)
+                    targetAndGate.getOutputComponent();
+            
+            afterAndGate.setInputComponent(offStubGate);
+        } else {
+            AbstractDoubleInputPinCircuitComponent afterAndGate =
+                    (AbstractDoubleInputPinCircuitComponent)
+                    targetAndGate.getOutputComponent();
+            
+            if (targetAndGate == afterAndGate.getInputComponent1()) {
+                afterAndGate.setInputComponent1(offStubGate);
+            } else {
+                afterAndGate.setInputComponent2(offStubGate);
+            }
+        }
+        
+        return true;
+    }
+    
     private boolean tryRemoveOneNotToAnd1(Circuit circuit) {
         AndGate targetAndGate = null;
         
@@ -84,11 +164,11 @@ public final class BruteForceCircuitMinimizer implements CircuitMinimizer {
         BranchWire wire = (BranchWire) targetAndGate.getInputComponent2();
         wire.removeFrom(targetAndGate);
         wire.removeFrom(targetAndGate.getInputComponent1());
+        
         OffStubGate offStubGate = new OffStubGate();
         wire.connectTo(offStubGate);
         offStubGate.setInputComponent(wire);
         offStubGate.setOutputComponent(targetAndGate.getOutputComponent());
-        
         
         // Update the component set.
         circuit.addComponent(offStubGate);
