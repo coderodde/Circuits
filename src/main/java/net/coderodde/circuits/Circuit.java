@@ -341,15 +341,40 @@ public final class Circuit extends AbstractCircuitComponent {
                 ((BranchWire) sourceComponent.getOutputComponent())
                         .connectTo(targetComponent);
             } else {
-                // Change an existing wire with BranchWire.
+                // Replace an existing wire with BranchWire.
                 BranchWire branchWire = new BranchWire();
+                
+                // Introduce the new BranchWire to the circuit.
                 addComponent(branchWire);
+                
+                // Load the BranchWire outputs:
                 branchWire.connectTo(sourceComponent.getOutputComponent());
-                sourceComponent.setOutputComponent(branchWire);
-                branchWire.setInputComponent(sourceComponent);
+                branchWire.connectTo(targetComponent);
+                
+                if (sourceComponent.getOutputComponent()
+                        instanceof AbstractDoubleInputPinCircuitComponent) {
+                    AbstractDoubleInputPinCircuitComponent tmpComponent =
+                            (AbstractDoubleInputPinCircuitComponent)
+                            sourceComponent.getOutputComponent();
+                    
+                    if (tmpComponent.getInputComponent2() == sourceComponent) {
+                        tmpComponent.setInputComponent1(branchWire);
+                    } else {
+                        tmpComponent.setInputComponent2(branchWire);
+                    }
+                } else {
+                    AbstractSingleInputPinCircuitComponent tmpComponent = 
+                            (AbstractSingleInputPinCircuitComponent)
+                            sourceComponent.getOutputComponent();
+                    
+                    tmpComponent.setInputComponent(branchWire);
+                }
+                
                 ((AbstractDoubleInputPinCircuitComponent) targetComponent)
                         .setInputComponent1(branchWire);
-                branchWire.connectTo(targetComponent);
+                
+                sourceComponent.setOutputComponent(branchWire);
+                branchWire.setInputComponent(sourceComponent);
             }
         }
         
@@ -379,15 +404,40 @@ public final class Circuit extends AbstractCircuitComponent {
                 ((BranchWire) sourceComponent.getOutputComponent())
                         .connectTo(targetComponent);
             } else {
-                // Change an existing wire with BranchWire.
+                // Replace an existing wire with BranchWire.
                 BranchWire branchWire = new BranchWire();
+                
+                // Introduce the new BranchWire to the circuit.
                 addComponent(branchWire);
+                
+                // Load the BranchWire outputs:
                 branchWire.connectTo(sourceComponent.getOutputComponent());
-                sourceComponent.setOutputComponent(branchWire);
-                branchWire.setInputComponent(sourceComponent);
+                branchWire.connectTo(targetComponent);
+                
+                if (sourceComponent.getOutputComponent() 
+                        instanceof AbstractDoubleInputPinCircuitComponent) {
+                    AbstractDoubleInputPinCircuitComponent tmpComponent = 
+                            (AbstractDoubleInputPinCircuitComponent)
+                            sourceComponent.getOutputComponent();
+                    
+                    if (tmpComponent.getInputComponent1() == sourceComponent) {
+                        tmpComponent.setInputComponent1(branchWire);
+                    } else {
+                        tmpComponent.setInputComponent2(branchWire);
+                    }
+                } else {
+                    AbstractSingleInputPinCircuitComponent tmpComponent = 
+                            (AbstractSingleInputPinCircuitComponent) 
+                            sourceComponent.getOutputComponent();
+                    
+                    tmpComponent.setInputComponent(branchWire);
+                }
+                
                 ((AbstractDoubleInputPinCircuitComponent) targetComponent)
                         .setInputComponent2(branchWire);
-                branchWire.connectTo(targetComponent);
+                
+                sourceComponent.setOutputComponent(branchWire);
+                branchWire.setInputComponent(sourceComponent);
             }
         }
         
@@ -417,15 +467,21 @@ public final class Circuit extends AbstractCircuitComponent {
                 ((BranchWire) sourceComponent.getOutputComponent())
                         .connectTo(targetComponent);
             } else {
-                // Change an existing wire with BranchWire.
+                // Replace an existing wire with BranchWire.
                 BranchWire branchWire = new BranchWire();
+                
+                // Introduce the BranchWire to the circuit.
                 addComponent(branchWire);
+                
+                // Load the BranchWire outputs:
                 branchWire.connectTo(sourceComponent.getOutputComponent());
+                branchWire.connectTo(targetComponent);
+                
                 sourceComponent.setOutputComponent(branchWire);
-                branchWire.setInputComponent(sourceComponent);
                 ((AbstractSingleInputPinCircuitComponent) targetComponent)
                         .setInputComponent(branchWire);
-                branchWire.connectTo(targetComponent);
+                
+                branchWire.setInputComponent(sourceComponent);
             }
         }
         

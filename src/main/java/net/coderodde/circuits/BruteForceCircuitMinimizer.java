@@ -86,8 +86,18 @@ public final class BruteForceCircuitMinimizer implements CircuitMinimizer {
         wire.removeFrom(targetAndGate.getInputComponent1());
         OffStubGate offStubGate = new OffStubGate();
         wire.connectTo(offStubGate);
-        circuit.addComponent(offStubGate);
+        offStubGate.setInputComponent(wire);
         offStubGate.setOutputComponent(targetAndGate.getOutputComponent());
+        
+        
+        // Update the component set.
+        circuit.addComponent(offStubGate);
+        circuit.removeComponent(targetAndGate);
+        circuit.removeComponent(targetAndGate.getInputComponent1());
+        
+        circuit.getComponentMap().remove(targetAndGate.getName());
+        circuit.getComponentMap().remove(targetAndGate.getInputComponent1()
+                                                      .getName());
         
         if (targetAndGate.getOutputComponent() 
                 instanceof AbstractSingleInputPinCircuitComponent) {
