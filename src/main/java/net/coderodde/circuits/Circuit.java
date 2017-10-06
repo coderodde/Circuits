@@ -124,7 +124,25 @@ public final class Circuit extends AbstractCircuitComponent {
         Map<AbstractCircuitComponent, AbstractCircuitComponent> 
                 componentMap = new HashMap<>(circuit.componentSet.size());
         
+        for (InputGate mappedInputGate : this.inputGates) {
+            AbstractCircuitComponent inputGate = 
+                    circuit.componentMap.get(mappedInputGate.getName());
+            
+            componentMap.put(inputGate, mappedInputGate);
+        }
+        
+        for (OutputGate mappedOutputGate : this.outputGates) {
+            AbstractCircuitComponent outputGate =
+                    circuit.componentMap.get(mappedOutputGate.getName());
+            
+            componentMap.put(outputGate, mappedOutputGate);
+        }
+        
         for (AbstractCircuitComponent component : circuit.componentSet) {
+            if (component instanceof InputGate || component instanceof OutputGate) {
+                continue;
+            }
+            
             AbstractCircuitComponent newComponent = copyComponent(component);
             componentMap.put(component, newComponent);
         }
@@ -154,22 +172,13 @@ public final class Circuit extends AbstractCircuitComponent {
                               mappedOutputComponent);
             }
         }
-        
-        for (AbstractCircuitComponent component : componentMap.values()) {
-            if (!(component instanceof BranchWire)) {
-                this.componentMap.put(component.getName(), 
-                                      componentMap.get(component));
-            }
-            
-            this.componentSet.add(componentMap.get(component));
-        }
     }
     
     private void connectInput(AbstractCircuitComponent component,
                               AbstractCircuitComponent inputComponent,
                               AbstractCircuitComponent mappedComponent,
                               AbstractCircuitComponent mappedInputComponent) {
-        if (component instanceof AbstractSingleInputPinCircuitComponent) {
+        if (mappedComponent instanceof AbstractSingleInputPinCircuitComponent) {
             ((AbstractSingleInputPinCircuitComponent) mappedComponent)
                     .setInputComponent(mappedInputComponent);
         } else {
@@ -191,10 +200,10 @@ public final class Circuit extends AbstractCircuitComponent {
                                AbstractCircuitComponent mappedComponent,
                                AbstractCircuitComponent mappedOutputComponent) {
         if (component instanceof BranchWire) {
-            BranchWire branchWire = (BranchWire) component;
-            branchWire.connectTo(mappedComponent);
+            BranchWire branchWire = (BranchWire) mappedComponent;
+            branchWire.connectTo(mappedOutputComponent);
         } else {
-            component.setOutputComponent(mappedOutputComponent);
+            mappedComponent.setOutputComponent(mappedOutputComponent);
         }
     }
     

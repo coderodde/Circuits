@@ -4,7 +4,7 @@ public final class Utils {
 
     private Utils() {}
     
-    public String toBinaryString(boolean... bits) {
+    public static String toBinaryString(boolean... bits) {
         StringBuilder sb = new StringBuilder(bits.length);
         
         for (int i = 0; i < bits.length; ++i) {
