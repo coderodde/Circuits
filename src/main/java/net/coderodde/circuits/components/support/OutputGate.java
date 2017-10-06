@@ -7,6 +7,12 @@ import java.util.List;
 import net.coderodde.circuits.components.AbstractCircuitComponent;
 import net.coderodde.circuits.components.AbstractSingleInputPinCircuitComponent;
 
+/**
+ * This class implements the output pins that remember one bit each.
+ * 
+ * @author Rodion "rodde" Efremov
+ * @version 1.6 (Oct 6, 2017)
+ */
 public final class OutputGate extends AbstractSingleInputPinCircuitComponent {
     
     public OutputGate(String name) {

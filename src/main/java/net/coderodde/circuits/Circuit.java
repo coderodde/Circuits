@@ -116,6 +116,13 @@ public final class Circuit extends AbstractCircuitComponent {
         }
     }
     
+    /**
+     * Copy constructs a new circuit by copying the contents of the input
+     * circuit.
+     * 
+     * @param circuit the circuit to copy.
+     * @param name    the name of this new circuit.
+     */
     public Circuit(Circuit circuit, String name) {
         this(checkName(name),
              circuit.getNumberOfInputPins(),

@@ -7,6 +7,12 @@ import java.util.List;
 import net.coderodde.circuits.components.AbstractCircuitComponent;
 import net.coderodde.circuits.components.AbstractSingleInputPinCircuitComponent;
 
+/**
+ * This class implements an input pin of a circuit.
+ * 
+ * @author Rodion "rodde" Efremov
+ * @version 1.6 (Oct 6, 2017)
+ */
 public final class InputGate extends AbstractSingleInputPinCircuitComponent {
 
     public static final boolean DEFAULT_BIT = false;
