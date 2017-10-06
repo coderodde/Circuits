@@ -1,100 +1,11 @@
 package net.coderodde.circuits;
 
+import java.util.Arrays;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 public class CircuitTest {
-    
-    @Test
-    public void testMinimizeNotToAnd1Input() {
-        Circuit c = new Circuit("c", 1, 1);
-        c.addAndGate("and");
-        c.addNotGate("not");
-        c.connect("inputPin0").to("not");
-        c.connect("not").toFirstPinOf("and");
-        c.connect("inputPin0").toSecondPinOf("and");
-        c.connect("and").to("outputPin0");
-       
-        assertEquals(5, c.size());
-        c.minimize(new BruteForceCircuitMinimizer());
-        assertEquals(3, c.size());
-        
-        assertFalse(c.doCycle(false)[0]);
-        assertFalse(c.doCycle(true)[0]);
-    }
-    
-    @Test
-    public void testMinimizeNotToAnd2Input() {
-        Circuit c = new Circuit("c", 1, 1);
-        c.addAndGate("and");
-        c.addNotGate("not");
-        c.connect("inputPin0").to("not");
-        c.connect("not").toSecondPinOf("and");
-        c.connect("inputPin0").toFirstPinOf("and");
-        c.connect("and").to("outputPin0");
-       
-        assertEquals(5, c.size());
-        c.minimize(new BruteForceCircuitMinimizer());
-        assertEquals(3, c.size());
-        
-        assertFalse(c.doCycle(false)[0]);
-        assertFalse(c.doCycle(true)[0]);
-    }
-    
-    @Test
-    public void testMinimizeNotToOr1Input() {
-        Circuit c = new Circuit("c", 1, 1);
-        c.addOrGate("or");
-        c.addNotGate("not");
-        c.connect("inputPin0").to("not");
-        c.connect("not").toFirstPinOf("or");
-        c.connect("inputPin0").toSecondPinOf("or");
-        c.connect("or").to("outputPin0");
-       
-        assertEquals(5, c.size());
-        c.minimize(new BruteForceCircuitMinimizer());
-        assertEquals(3, c.size());
-        
-        assertTrue(c.doCycle(false)[0]);
-        assertTrue(c.doCycle(true)[0]);
-    }
-    
-    @Test
-    public void testMinimizeNotToOr2Input() {
-        Circuit c = new Circuit("c", 1, 1);
-        c.addOrGate("or");
-        c.addNotGate("not");
-        c.connect("inputPin0").to("not");
-        c.connect("not").toSecondPinOf("or");
-        c.connect("inputPin0").toFirstPinOf("or");
-        c.connect("or").to("outputPin0");
-       
-        assertEquals(5, c.size());
-        c.minimize(new BruteForceCircuitMinimizer());
-        assertEquals(3, c.size());
-        
-        assertTrue(c.doCycle(false)[0]);
-        assertTrue(c.doCycle(true)[0]);
-    }
-    
-    @Test
-    public void testMinimizeTwoNots() {
-        Circuit c = new Circuit("c", 1, 1);
-        c.addNotGate("not1");
-        c.addNotGate("not2");
-        c.connect("inputPin0").to("not1");
-        c.connect("not1").to("not2");
-        c.connect("not2").to("outputPin0");
-        
-        assertEquals(4, c.size());
-        c.minimize(new BruteForceCircuitMinimizer());
-        assertEquals(2, c.size());
-        
-        assertFalse(c.doCycle(false)[0]);
-        assertTrue(c.doCycle(true)[0]);
-    }
     
     @Test(expected = ForwardCycleException.class)
     public void testFindsForwardCycle() {
@@ -103,7 +14,7 @@ public class CircuitTest {
         circuit.connect("inputPin0").toFirstPinOf("and1");
         circuit.connect("and1").to("outputPin0");
         circuit.connect("and1").toSecondPinOf("and1");
-        circuit.minimize(new BruteForceCircuitMinimizer());
+        circuit.lock();
     }
     
     @Test(expected = BackwardCycleException.class)
@@ -116,7 +27,7 @@ public class CircuitTest {
         circuit.connect("or").to("outputPin0");
         circuit.connect("and").toFirstPinOf("and");
         circuit.connect("and").toSecondPinOf("and");
-        circuit.minimize(new BruteForceCircuitMinimizer());
+        circuit.lock();
     }
     
     @Test(expected = InputPinOccupiedException.class)
@@ -126,7 +37,7 @@ public class CircuitTest {
         circuit.connect("inputPin0").to("outputPin0");
         circuit.connect("inputPin0").to("not");
         circuit.connect("not").to("outputPin0");
-        circuit.minimize(new BruteForceCircuitMinimizer());
+        circuit.lock();
     }
     
     @Test
@@ -226,20 +137,27 @@ public class CircuitTest {
     }
     
     @Test
-    public void testMinimizedUnreachableGates() {
-        Circuit c = new Circuit("yeah", 1, 1);
-        c.connect("inputPin0").to("outputPin0");
-        c.addNotGate("not1");
-        c.addNotGate("not2");
-        c.connect("not1").to("not2");
-        c.connect("not2").to("not1");
-        c.addOrGate("or");
-        c.connect("or").toFirstPinOf("or");
-        c.connect("or").toSecondPinOf("or");
+    public void testCopyConstructor() {
+        Circuit c = new Circuit("c", 2, 2);
         
-        assertEquals(6, c.size());
-        c.minimize(new BruteForceCircuitMinimizer());
-        assertEquals(2, c.size());
+        c.addAndGate("and");
+        c.addOrGate("or");
+        
+        c.connect("inputPin0").toFirstPinOf("and");
+        c.connect("inputPin1").toSecondPinOf("and");
+        c.connect("inputPin0").toFirstPinOf("or");
+        c.connect("inputPin1").toSecondPinOf("or");
+        c.connect("and").to("outputPin0");
+        c.connect("or").to("outputPin1");
+        
+        Circuit c2 = new Circuit(c, "c2");
+        
+        for (boolean b1 : new boolean[]{ false, true }) {
+            for (boolean b2 : new boolean[]{ false, true }) {
+                boolean[] expected = new boolean[] { b1 && b2, b1 || b2 };
+                assertTrue(Arrays.equals(expected, c.doCycle(b1, b2)));
+                assertTrue(Arrays.equals(expected, c2.doCycle(b1, b2)));
+            }
+        }
     }
-    
 }

@@ -82,7 +82,7 @@ public final class Circuit extends AbstractCircuitComponent {
     /**
      * Set to {@code true} if this circuit is minimized.
      */
-    private boolean minimized = false;
+    private boolean locked = false;
     
     /**
      * Creates a new circuit.
@@ -116,6 +116,124 @@ public final class Circuit extends AbstractCircuitComponent {
         }
     }
     
+    public Circuit(Circuit circuit, String name) {
+        this(checkName(name),
+             circuit.getNumberOfInputPins(),
+             circuit.getNumberOfOutputPins());
+        
+        Map<AbstractCircuitComponent, AbstractCircuitComponent> 
+                componentMap = new HashMap<>(circuit.componentSet.size());
+        
+        for (AbstractCircuitComponent component : circuit.componentSet) {
+            AbstractCircuitComponent newComponent = copyComponent(component);
+            componentMap.put(component, newComponent);
+        }
+        
+        for (AbstractCircuitComponent component : circuit.componentSet) {
+            AbstractCircuitComponent mappedComponent = 
+                    componentMap.get(component);
+            
+            for (AbstractCircuitComponent inputComponent
+                    : component.getInputComponents()) {
+                AbstractCircuitComponent mappedInputComponent =
+                        componentMap.get(inputComponent);
+                
+                connectInput(component, 
+                             inputComponent,
+                             mappedComponent,
+                             mappedInputComponent);
+            }
+            
+            for (AbstractCircuitComponent outputComponent 
+                    : component.getOutputComponents()) {
+                AbstractCircuitComponent mappedOutputComponent =
+                        componentMap.get(outputComponent);
+                
+                connectOutput(component,
+                              mappedComponent,
+                              mappedOutputComponent);
+            }
+        }
+        
+        for (AbstractCircuitComponent component : componentMap.values()) {
+            if (!(component instanceof BranchWire)) {
+                this.componentMap.put(component.getName(), 
+                                      componentMap.get(component));
+            }
+            
+            this.componentSet.add(componentMap.get(component));
+        }
+    }
+    
+    private void connectInput(AbstractCircuitComponent component,
+                              AbstractCircuitComponent inputComponent,
+                              AbstractCircuitComponent mappedComponent,
+                              AbstractCircuitComponent mappedInputComponent) {
+        if (component instanceof AbstractSingleInputPinCircuitComponent) {
+            ((AbstractSingleInputPinCircuitComponent) mappedComponent)
+                    .setInputComponent(mappedInputComponent);
+        } else {
+            AbstractDoubleInputPinCircuitComponent c1 = 
+                    (AbstractDoubleInputPinCircuitComponent) mappedComponent;
+            
+            AbstractDoubleInputPinCircuitComponent c2 =
+                    (AbstractDoubleInputPinCircuitComponent) component;
+            
+            if (inputComponent == c2.getInputComponent1()) {
+                c1.setInputComponent1(mappedInputComponent);
+            } else {
+                c1.setInputComponent2(mappedInputComponent);
+            }
+        }
+    }
+    
+    private void connectOutput(AbstractCircuitComponent component,
+                               AbstractCircuitComponent mappedComponent,
+                               AbstractCircuitComponent mappedOutputComponent) {
+        if (component instanceof BranchWire) {
+            BranchWire branchWire = (BranchWire) component;
+            branchWire.connectTo(mappedComponent);
+        } else {
+            component.setOutputComponent(mappedOutputComponent);
+        }
+    }
+    
+    private AbstractCircuitComponent
+        copyComponent(AbstractCircuitComponent component) {
+        if (component instanceof NotGate) {
+            NotGate gate = (NotGate) component;
+            return new NotGate(gate.getName());
+        }
+        
+        if (component instanceof AndGate) {
+            AndGate gate = (AndGate) component;
+            return new AndGate(gate.getName());
+        }
+        
+        if (component instanceof OrGate) {
+            OrGate gate = (OrGate) component;
+            return new OrGate(gate.getName());
+        }
+        
+        if (component instanceof BranchWire) {
+            BranchWire wire = (BranchWire) component;
+            return new BranchWire();
+        }
+        
+        if (component instanceof InputGate) {
+            InputGate gate = (InputGate) component;
+            return new InputGate(gate.getName());
+        }
+        
+        if (component instanceof OutputGate) {
+            OutputGate gate = (OutputGate) component;
+            return new OutputGate(gate.getName());
+        }
+        
+        throw new IllegalStateException(
+                "Unknown gate type: " + component.getClass());
+    }
+    
     /**
      * Returns the number of components in this circuit.
      * 
@@ -131,7 +249,7 @@ public final class Circuit extends AbstractCircuitComponent {
      * @param notGateName the name of the gate.
      */
     public void addNotGate(String notGateName) {
-        checkEditable();
+        checkIsNotLocked();
         checkNewGateName(notGateName);
         NotGate notGate = new NotGate(notGateName);
         componentMap.put(notGateName, notGate);
@@ -144,7 +262,7 @@ public final class Circuit extends AbstractCircuitComponent {
      * @param andGateName the name of the gate.
      */
     public void addAndGate(String andGateName) {
-        checkEditable();
+        checkIsNotLocked();
         checkNewGateName(andGateName);
         AndGate andGate = new AndGate(andGateName);
         componentMap.put(andGateName, andGate);
@@ -157,7 +275,7 @@ public final class Circuit extends AbstractCircuitComponent {
      * @param orGateName the name of the gate.
      */
     public void addOrGate(String orGateName) {
-        checkEditable();
+        checkIsNotLocked();
         checkNewGateName(orGateName);
         OrGate orGate = new OrGate(orGateName);
         componentMap.put(orGateName, orGate);
@@ -170,7 +288,7 @@ public final class Circuit extends AbstractCircuitComponent {
      * @param circuit the subcircuit to add.
      */
     public void addCircuit(Circuit circuit) {
-        checkEditable();
+        checkIsNotLocked();
         checkNewGateName(circuit.getName());
         componentMap.put(circuit.getName(), circuit);
         componentSet.add(circuit);
@@ -240,16 +358,15 @@ public final class Circuit extends AbstractCircuitComponent {
      * Attempts to produce a logical circuit with minimal possible number of 
      * gates that is equivalent to this circuit.
      */
-    public void minimize(CircuitMinimizer minimizer) {
-        if (minimized) {
+    public void lock() {
+        if (locked) {
             return;
         }
         
-        minimized = true;
+        locked = true;
         checkAllPinsAreConnected();
         checkIsDagInForwardDirection();
         checkIsDagInBackwardDirection();
-        minimizer.minimize(this);
     }
     
     /**
@@ -259,7 +376,7 @@ public final class Circuit extends AbstractCircuitComponent {
      * @return a target component selector.
      */
     public TargetComponentSelector connect(String sourceComponentName) {
-        checkEditable();
+        checkIsNotLocked();
         return new TargetComponentSelector(sourceComponentName);
     }
 
@@ -565,10 +682,10 @@ public final class Circuit extends AbstractCircuitComponent {
         componentSet.remove(component);
     }
     
-    private void checkEditable() {
-        if (minimized) {
+    private void checkIsNotLocked() {
+        if (locked) {
             throw new IllegalStateException(
-                    "The circuit \"" + getName() + "\" is not editable.");
+                    "The circuit \"" + getName() + "\" is locked.");
         }
     }
     
